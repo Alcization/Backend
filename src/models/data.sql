@@ -1,6 +1,5 @@
 DROP DATABASE IF EXISTS weather_traffic;
 CREATE DATABASE weather_traffic;
-\c weather_traffic;
 
 CREATE TABLE user_account (
     user_id          SERIAL PRIMARY KEY,
@@ -167,7 +166,7 @@ CREATE TABLE weather_forecast (
     timeslot_id   INT REFERENCES time_slot(timeslot_id) ON DELETE CASCADE,
     issue_time    TIMESTAMP,
     accuracy      FLOAT,
-    precip        FLOAT, -- Lượng mưa
+    precip        FLOAT,
     uv_index      FLOAT,
     feels_like    FLOAT
 );
@@ -176,9 +175,24 @@ CREATE TABLE weather_forecast (
 CREATE TABLE weather_reading (
     reading_id    SERIAL PRIMARY KEY,
     timeslot_id   INT REFERENCES time_slot(timeslot_id) ON DELETE CASCADE,
+    temp          FLOAT,
+    feelslike     FLOAT,
+    dew           FLOAT,
+    humidity      FLOAT,
     precip        FLOAT,
-    uv_index      FLOAT,
-    feels_like    FLOAT
+    precipprob    FLOAT,
+    preciptype    VARCHAR(100),
+    windgust      FLOAT,
+    windspeed     FLOAT,
+    winddir       FLOAT,
+    cloudcover    FLOAT,
+    visibility    FLOAT,
+    solarradiation FLOAT,
+    solarenergy   FLOAT,
+    uvindex       FLOAT,
+    conditions    VARCHAR(255),
+    icon          VARCHAR(100),
+    stations      VARCHAR(100)
 );
 
 -- TRIP
