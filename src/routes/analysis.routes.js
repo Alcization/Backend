@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const analysisController = require('../controllers/analysis.controller');
-const authMiddleware = require('../middleware/auth.middleware');
+const authJwt = require('../middleware/auth.middleware');
 const asyncHandler = require('../utils/asyncHandler');
 
 // All routes require authentication
-router.use(authMiddleware);
+router.use(authJwt.verifyToken);
 
 // Weather forecast
 router.get('/forecast', asyncHandler(analysisController.getForecast));

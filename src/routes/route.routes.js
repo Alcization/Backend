@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const routeController = require('../controllers/route.controller');
-const authMiddleware = require('../middleware/auth.middleware');
+const authJwt = require('../middleware/auth.middleware');
 const asyncHandler = require('../utils/asyncHandler');
 
 // All routes require authentication
-router.use(authMiddleware);
+router.use(authJwt.verifyToken);
 
 // Location management
 router.get('/locations', asyncHandler(routeController.getLocations));

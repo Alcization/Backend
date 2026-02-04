@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const adminCtrl = require('../controllers/admin.controller');
-const authMiddleware = require('../middleware/auth.middleware');
+const authJwt = require('../middleware/auth.middleware');
 const requireRole = require('../middleware/role.middleware');
 
 // All admin routes require authentication and admin role
-router.use(authMiddleware);
+router.use(authJwt.verifyToken);
 router.use(requireRole('admin', 'admin_officer'));
 
 // Admin Areas (CRUD)

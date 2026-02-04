@@ -1,6 +1,11 @@
 const asyncHandler = require('../utils/asyncHandler');
 const userService = require('../services/user.service');
 
+/**
+ * User Controller - Demo Role-Based Access Control
+ * Theo: https://www.corbado.com/blog/nodejs-express-postgresql-jwt-authentication-roles
+ */
+
 // GET /users/me - Get current user profile
 exports.getMe = asyncHandler(async (req, res) => {
     const userId = req.user.id; // From auth middleware
@@ -44,3 +49,27 @@ exports.markNotificationRead = asyncHandler(async (req, res) => {
     const notification = await userService.markNotificationRead(userId, notiEventId);
     res.json(notification);
 });
+
+/**
+ * Demo endpoints cho role-based access control
+ */
+
+// Public content - Accessible by anyone
+exports.allAccess = (req, res) => {
+    res.status(200).send('Public Content.');
+};
+
+// User content - Requires authentication
+exports.userBoard = (req, res) => {
+    res.status(200).send('User Content.');
+};
+
+// Moderator content - Requires moderator role
+exports.moderatorBoard = (req, res) => {
+    res.status(200).send('Moderator Content.');
+};
+
+// Admin content - Requires admin role
+exports.adminBoard = (req, res) => {
+    res.status(200).send('Admin Content.');
+};

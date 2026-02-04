@@ -105,22 +105,63 @@
 |-- requirements.txt
 
 
+# 🔐 AUTHENTICATION & AUTHORIZATION
+
+**Hệ thống đã được tái kiến trúc với JWT Authentication và Role-Based Access Control**
+
+📖 **Chi tiết:** Xem [AUTHENTICATION_GUIDE.md](./AUTHENTICATION_GUIDE.md)
+
+## Tính năng chính:
+- ✅ JWT Token-based Authentication
+- ✅ Role-Based Access Control (User, Moderator, Admin)
+- ✅ Secure password hashing (bcryptjs)
+- ✅ Refresh token mechanism
+- ✅ Google OAuth integration
+- ✅ Protected routes theo roles
+
+## Quick Start:
+
+### 1. Setup Database
+```bash
+# Chạy migration script
+psql -U postgres -d weather_traffic -f src/models/migration.sql
+```
+
+### 2. Khởi động server
+```bash
+npm install
+npm start
+# Roles sẽ tự động được khởi tạo
+```
+
+### 3. Test API
+Import file `postman_collection.json` vào Postman/Insomnia để test.
+
+---
+
 # API
 A. Auth & Core User (/api/auth & /api/users)
 
-POST /auth/register, /auth/login, /auth/refresh-token ...
+**Authentication:**
+- POST /auth/signup - Đăng ký (với validation)
+- POST /auth/signin - Đăng nhập (email hoặc username)
+- POST /auth/google - Đăng nhập qua Google OAuth
+- POST /auth/logout - Đăng xuất (xóa refresh token)
+- POST /auth/refresh-token - Làm mới access token
 
-GET /users/me: Lấy thông tin profile + Role (Individual/Business/Admin).
+**Role-Based Access (Demo):**
+- GET /users/test/all - Public content (không cần auth)
+- GET /users/test/user - User content (cần authentication)
+- GET /users/test/mod - Moderator content (cần role moderator)
+- GET /users/test/admin - Admin content (cần role admin)
 
-PUT /users/me: Cập nhật profile.
-
-GET /users/me/preferences: Lấy cấu hình thông báo (notification_preference).
-
-PUT /users/me/preferences: Cập nhật ngưỡng cảnh báo cá nhân (Mưa/Nhiệt độ/Tắc đường).
-
-GET /users/notifications: Lấy danh sách thông báo đã nhận (noti_event).
-
-PUT /users/notifications/:id/read: Đánh dấu đã đọc.
+**User Profile:**
+- GET /users/me - Lấy thông tin profile + Roles
+- PUT /users/me - Cập nhật profile
+- GET /users/me/preferences - Lấy cấu hình thông báo
+- PUT /users/me/preferences - Cập nhật ngưỡng cảnh báo cá nhân
+- GET /users/notifications - Lấy danh sách thông báo
+- PUT /users/notifications/:id/read - Đánh dấu đã đọc
 
 B. Route & Location Management (/api/routes)
 

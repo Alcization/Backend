@@ -7,7 +7,7 @@ const sequelize = new Sequelize(
   process.env.DB_PASS,
   {
     host: process.env.DB_HOST,
-    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 5432,
+    port: process.env.DB_PORT ? parseInt(process.env.DB_PORT, 10) : 4567,
     dialect: process.env.DB_DIALECT || 'postgres',
     logging: false,
     pool: {

@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
 const businessCtrl = require('../controllers/business.controller');
-const authMiddleware = require('../middleware/auth.middleware');
+const authJwt = require('../middleware/auth.middleware');
 const requireRole = require('../middleware/role.middleware');
 
-// All business routes require authentication and business role
-router.use(authMiddleware);
+// All business routes require authentication
+router.use(authJwt.verifyToken);
 router.use(requireRole('business'));
 
 // Alert Policies
