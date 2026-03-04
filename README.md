@@ -121,6 +121,8 @@
 
 ## Quick Start:
 
+Database: https://drive.google.com/file/d/1vXGOifugsELpbw-GvOac-VX2-LcbfgMP/view?usp=sharing
+
 ### 1. Khởi động server
 ```bash
 npm install
