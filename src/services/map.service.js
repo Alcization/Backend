@@ -12,9 +12,10 @@ class MapService {
         const query = `
             SELECT 
                 rs.segment_id,
-                ST_AsGeoJSON(rs.start_point) as start_point,
-                ST_AsGeoJSON(rs.end_point) as end_point,
-                ST_AsGeoJSON(rs.coordinate) as coordinate,
+                rs.start_point[0] as start_lng,
+                rs.start_point[1] as start_lat,
+                rs.end_point[0] as end_lng,
+                rs.end_point[1] as end_lat,
                 tr.velocity,
                 tr.traffic_state,
                 tr.time_reading
@@ -35,9 +36,18 @@ class MapService {
             // Determine color based on traffic state or velocity
             const color = this._getTrafficColor(segment.traffic_state, segment.velocity);
             
+            // Build LineString geometry from start and end points
+            const geometry = segment.start_lng && segment.start_lat && segment.end_lng && segment.end_lat ? {
+                type: 'LineString',
+                coordinates: [
+                    [segment.start_lng, segment.start_lat],
+                    [segment.end_lng, segment.end_lat]
+                ]
+            } : null;
+            
             return {
                 type: 'Feature',
-                geometry: segment.coordinate ? JSON.parse(segment.coordinate) : null,
+                geometry: geometry,
                 properties: {
                     segment_id: segment.segment_id,
                     velocity: segment.velocity,
@@ -63,7 +73,8 @@ class MapService {
             SELECT 
                 wa.area_id,
                 wa.name,
-                ST_AsGeoJSON(wa.center_point) as center_point,
+                wa.center_point[0] as center_lng,
+                wa.center_point[1] as center_lat,
                 ts.timeslot_id,
                 ts.time_value,
                 wr.temp,
@@ -96,7 +107,10 @@ class MapService {
         return areas.map(area => ({
             area_id: area.area_id,
             name: area.name,
-            center_point: area.center_point ? JSON.parse(area.center_point) : null,
+            center_point: area.center_lng && area.center_lat ? {
+                type: 'Point',
+                coordinates: [area.center_lng, area.center_lat]
+            } : null,
             weather: area.timeslot_id ? {
                 time: area.time_value,
                 temp: area.temp,
@@ -128,13 +142,10 @@ class MapService {
                 name,
                 type,
                 description,
-                ST_AsGeoJSON(location) as location,
-                severity,
-                issue_at,
-                resolved_at
+                issue_at
             FROM alert_event
-            WHERE resolved_at IS NULL
             ORDER BY issue_at DESC
+            LIMIT 100
         `;
 
         const incidents = await sequelize.query(query, { type: QueryTypes.SELECT });
@@ -142,18 +153,17 @@ class MapService {
         // Transform to GeoJSON FeatureCollection
         const features = incidents.map(incident => ({
             type: 'Feature',
-            geometry: incident.location ? JSON.parse(incident.location) : null,
+            geometry: null, // Location not available without PostGIS
             properties: {
                 incident_id: incident.alert_event_id,
                 name: incident.name,
                 type: incident.type,
                 description: incident.description,
-                severity: incident.severity,
                 issue_at: incident.issue_at,
                 icon: this._getIncidentIcon(incident.type),
-                color: this._getSeverityColor(incident.severity)
+                color: this._getIncidentColor(incident.type)
             }
-        })).filter(f => f.geometry !== null);
+        }));
 
         return {
             type: 'FeatureCollection',
@@ -229,6 +239,19 @@ class MapService {
             'Critical': '#ff0000'  // Red
         };
         return colorMap[severity] || '#808080';
+    }
+
+    /**
+     * Helper: Get color based on incident type
+     */
+    _getIncidentColor(type) {
+        const colorMap = {
+            'Flood': '#0066cc',       // Blue
+            'Accident': '#ff0000',    // Red
+            'Traffic Jam': '#ffa500', // Orange
+            'Road Closure': '#808080' // Gray
+        };
+        return colorMap[type] || '#ffff00'; // Default yellow
     }
 }
 

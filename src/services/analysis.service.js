@@ -1,4 +1,4 @@
-const { WeatherForecast, WeatherArea, TimeSlot, RouteSegment, TrafficReading } = require('../models/map.model');
+const { WeatherArea, TimeSlot, RouteSegment, TrafficReading, WeatherReading } = require('../models/map.model');
 const { RiskAssessment, Trip } = require('../models/route.model');
 const { QueryTypes } = require('sequelize');
 const sequelize = require('../config/database');
@@ -8,12 +8,16 @@ class AnalysisService {
      * Get weather forecast for a location
      */
     async getForecast(lat, lng) {
-        // Find nearest weather area
+        // Find nearest weather area using Haversine distance formula
         const areaQuery = `
-            SELECT area_id, name, ST_Distance(
-                center_point::geography,
-                ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
-            ) as distance
+            SELECT area_id, name,
+                (6371 * acos(
+                    cos(radians($2)) * 
+                    cos(radians(center_point[1])) * 
+                    cos(radians(center_point[0]) - radians($1)) + 
+                    sin(radians($2)) * 
+                    sin(radians(center_point[1]))
+                )) as distance
             FROM weather_area
             ORDER BY distance
             LIMIT 1
@@ -28,11 +32,21 @@ class AnalysisService {
             throw new Error('No weather area found near this location');
         }
 
-        // Get forecasts for this area (next 7 days)
-        const forecasts = await WeatherForecast.findAll({
-            where: { area_id: area.area_id },
-            order: [['forecast_datetime', 'ASC']],
-            limit: 168 // 7 days * 24 hours
+        // Get recent weather readings for this area
+        const forecastQuery = `
+            SELECT 
+                wr.*,
+                ts.time_value as datetime
+            FROM weather_reading wr
+            JOIN time_slot ts ON ts.timeslot_id = wr.timeslot_id
+            WHERE ts.area_id = $1
+            ORDER BY ts.time_value DESC
+            LIMIT 24
+        `;
+
+        const forecasts = await sequelize.query(forecastQuery, {
+            bind: [area.area_id],
+            type: QueryTypes.SELECT
         });
 
         return {
@@ -43,10 +57,9 @@ class AnalysisService {
                 distance: area.distance
             },
             forecasts: forecasts.map(f => ({
-                datetime: f.forecast_datetime,
+                datetime: f.datetime,
                 temp: f.temp,
-                tempmax: f.tempmax,
-                tempmin: f.tempmin,
+                feelslike: f.feelslike,
                 humidity: f.humidity,
                 precip: f.precip,
                 precipprob: f.precipprob,
@@ -88,17 +101,21 @@ class AnalysisService {
         // Generate suggestions
         const suggestions = this._generateSuggestions(weatherRisk, trafficRisk, overallRisk);
 
-        // Save risk assessment
+        // Validate trip_id if provided
+        let tripId = null;
+        if (params.trip_id) {
+            const tripExists = await Trip.findByPk(params.trip_id);
+            if (tripExists) {
+                tripId = params.trip_id;
+            }
+        }
+
+        // Save risk assessment - only save fields that exist in model
         const assessment = await RiskAssessment.create({
-            trip_id: params.trip_id || null,
-            user_id: userId,
-            route_id: route_id || null,
-            assessment_time: new Date(),
+            trip_id: tripId,
             risk_level: overallRisk.level,
-            weather_risk: weatherRisk.level,
-            traffic_risk: trafficRisk.level,
-            risk_factors: JSON.stringify(overallRisk.factors),
-            suggestions: JSON.stringify(suggestions)
+            suggest_action: suggestions.join('\n'),
+            advisor_note: `Weather Risk: ${weatherRisk.level}, Traffic Risk: ${trafficRisk.level}`
         });
 
         return {
@@ -131,9 +148,10 @@ class AnalysisService {
                 sr.route_id,
                 sr.name,
                 rs.segment_id,
-                ST_AsGeoJSON(rs.start_point) as start_point,
-                ST_AsGeoJSON(rs.end_point) as end_point,
-                ST_AsGeoJSON(rs.coordinate) as coordinate
+                rs.start_point[0] as start_lng,
+                rs.start_point[1] as start_lat,
+                rs.end_point[0] as end_lng,
+                rs.end_point[1] as end_lat
             FROM saved_route sr
             JOIN route_segment rs ON rs.saved_route_id = sr.route_id
             WHERE sr.route_id = :routeId
@@ -176,25 +194,30 @@ class AnalysisService {
         const factors = [];
 
         for (const segment of segments) {
-            const startPoint = JSON.parse(segment.start_point);
-            const [lng, lat] = startPoint.coordinates;
+            const lng = segment.start_lng;
+            const lat = segment.start_lat;
 
-            // Find forecast near this segment
+            // Skip segment if coordinates are missing
+            if (!lng || !lat) {
+                continue;
+            }
+
+            // Find weather reading near this segment
             const forecastQuery = `
-                SELECT wf.*
-                FROM weather_forecast wf
-                JOIN weather_area wa ON wa.area_id = wf.area_id
-                WHERE ST_DWithin(
-                    wa.center_point::geography,
-                    ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography,
-                    10000
-                )
-                AND wf.forecast_datetime >= $3
-                AND wf.forecast_datetime < $3 + INTERVAL '2 hours'
-                ORDER BY ST_Distance(
-                    wa.center_point::geography,
-                    ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography
-                )
+                SELECT wr.*,
+                    (6371 * acos(
+                        cos(radians($2)) * 
+                        cos(radians(wa.center_point[1])) * 
+                        cos(radians(wa.center_point[0]) - radians($1)) + 
+                        sin(radians($2)) * 
+                        sin(radians(wa.center_point[1]))
+                    )) as distance
+                FROM weather_reading wr
+                JOIN time_slot ts ON ts.timeslot_id = wr.timeslot_id
+                JOIN weather_area wa ON wa.area_id = ts.area_id
+                WHERE ts.time_value >= $3
+                AND ts.time_value < $3 + INTERVAL '2 hours'
+                ORDER BY distance
                 LIMIT 1
             `;
 

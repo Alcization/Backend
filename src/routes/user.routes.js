@@ -30,6 +30,7 @@ router.put('/me/preferences', authJwt.verifyToken, userCtrl.updatePreferences);
 
 // Notifications routes - yêu cầu authentication
 router.get('/notifications', authJwt.verifyToken, userCtrl.getNotifications);
+router.get('/notification', authJwt.verifyToken, userCtrl.getNotifications); // Alias for singular form
 router.put('/notifications/:id/read', authJwt.verifyToken, userCtrl.markNotificationRead);
 
 module.exports = router;

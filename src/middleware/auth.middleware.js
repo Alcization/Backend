@@ -26,7 +26,7 @@ const verifyToken = (req, res, next) => {
         if (err) {
             return res.status(401).json({ message: 'Unauthorized!' });
         }
-        req.userId = decoded.id;
+        req.user = decoded;
         next();
     });
 };
@@ -36,7 +36,7 @@ const verifyToken = (req, res, next) => {
  */
 const isAdmin = async (req, res, next) => {
     try {
-        const user = await UserAccount.findByPk(req.userId);
+        const user = await UserAccount.findByPk(req.user.id);
         if (!user) {
             return res.status(404).json({ message: 'User not found!' });
         }
@@ -60,7 +60,7 @@ const isAdmin = async (req, res, next) => {
  */
 const isModerator = async (req, res, next) => {
     try {
-        const user = await UserAccount.findByPk(req.userId);
+        const user = await UserAccount.findByPk(req.user.id);
         if (!user) {
             return res.status(404).json({ message: 'User not found!' });
         }
@@ -84,7 +84,7 @@ const isModerator = async (req, res, next) => {
  */
 const isModeratorOrAdmin = async (req, res, next) => {
     try {
-        const user = await UserAccount.findByPk(req.userId);
+        const user = await UserAccount.findByPk(req.user.id);
         if (!user) {
             return res.status(404).json({ message: 'User not found!' });
         }

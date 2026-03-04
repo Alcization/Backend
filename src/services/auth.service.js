@@ -109,11 +109,12 @@ class AuthService {
         }
 
         // Tạo Access Token với roles
-        const roles = user.roles.map(role => `ROLE_${role.name.toUpperCase()}`);
+        const roles = user.roles.map(role => role.name);
         const token = jwt.sign(
             { 
                 id: user.user_id,
-                roles: roles
+                roles: roles,
+                account_type: user.account_type
             },
             process.env.JWT_SECRET,
             { expiresIn: process.env.JWT_EXPIRE || '24h' }
@@ -200,11 +201,12 @@ class AuthService {
             await t.commit();
 
             // Tạo tokens
-            const roles = user.roles.map(role => `ROLE_${role.name.toUpperCase()}`);
+            const roles = user.roles.map(role => role.name);
             const token = jwt.sign(
                 { 
                     id: user.user_id,
-                    roles: roles
+                    roles: roles,
+                    account_type: user.account_type
                 },
                 process.env.JWT_SECRET,
                 { expiresIn: process.env.JWT_EXPIRE || '24h' }
@@ -267,11 +269,12 @@ class AuthService {
         }
 
         // Tạo access token mới
-        const roles = user.roles.map(role => `ROLE_${role.name.toUpperCase()}`);
+        const roles = user.roles.map(role => role.name);
         const token = jwt.sign(
             { 
                 id: user.user_id,
-                roles: roles
+                roles: roles,
+                account_type: user.account_type
             },
             process.env.JWT_SECRET,
             { expiresIn: process.env.JWT_EXPIRE || '24h' }

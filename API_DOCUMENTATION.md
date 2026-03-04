@@ -1,17 +1,18 @@
 # API Documentation - Weather Traffic Backend
 
-Base URL: `http://localhost:3000/api`
+Base URL: `http://localhost:3000`
 
 ## Table of Contents
+
 - [Authentication](#authentication)
 - [User Profile](#user-profile)
 - [User Preferences](#user-preferences)
 - [Notifications](#notifications)
-- [Route & Location Management](#route--location-management)
-- [Prediction & Risk Assessment](#prediction--risk-assessment)
-- [Map & Real-time Data](#map--real-time-data)
+- [Route &amp; Location Management](#route--location-management)
+- [Prediction &amp; Risk Assessment](#prediction--risk-assessment)
+- [Map &amp; Real-time Data](#map--real-time-data)
 - [Business Features](#business-features)
-- [Admin & Response Scenarios](#admin--response-scenarios)
+- [Admin &amp; Response Scenarios](#admin--response-scenarios)
 - [Error Handling](#error-handling)
 
 ---
@@ -19,53 +20,80 @@ Base URL: `http://localhost:3000/api`
 ## Authentication
 
 ### Register User
-Create a new user account (Individual or Business).
 
-**Endpoint:** `POST /auth/register`
+Create a new user account (Individual or Business) with role assignment.
+
+**Endpoint:** `POST /api/auth/signup`
 
 **Request Body:**
+
 ```json
 {
+  "username": "johndoe",
   "email": "user@example.com",
   "password": "securePassword123",
-  "role": "individual",
-  "fullName": "John Doe"
+  "accountType": "individual",
+  "fullName": "John Doe",
+  "roles": ["user"]
 }
 ```
 
+**Field Descriptions:**
+
+- `username` (optional): Unique username for login
+- `email` (required): User's email address
+- `password` (required): User's password (will be hashed)
+- `accountType` (optional): `"individual"` or `"business"` (default: `"individual"`)
+- `fullName` (required for individual): Full name of the user
+- `companyName` (required for business): Company name
+- `taxCode` (optional for business): Business tax code
+- `roles` (optional): Array of roles to assign (default: `["user"]`)
+  - Available roles: `"user"`, `"moderator"`, `"admin"`
+
 **Response:** `201 Created`
+
 ```json
 {
-  "user_id": 1,
-  "email": "user@example.com",
-  "role": "individual",
-  "status": "active",
-  "created_at": "2025-11-27T10:00:00.000Z"
+  "message": "User registered successfully!",
+  "user": {
+    "id": 1,
+    "email": "user@example.com",
+    "username": "johndoe"
+  }
 }
 ```
 
 ---
 
-### Login with Email/Password
-**Endpoint:** `POST /auth/login`
+### Login with Email/Password or Username
+
+Authenticate using email or username with password.
+
+**Endpoint:** `POST /api/auth/signin`
 
 **Request Body:**
+
 ```json
 {
-  "email": "user@example.com",
+  "emailOrUsername": "johndoe",
   "password": "securePassword123"
 }
 ```
 
+**Field Descriptions:**
+
+- `emailOrUsername` (required): User's email address or username
+- `password` (required): User's password
+
 **Response:** `200 OK`
+
 ```json
 {
-  "user": {
-    "user_id": 1,
-    "email": "user@example.com",
-    "role": "individual"
-  },
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "id": 1,
+  "username": "johndoe",
+  "email": "user@example.com",
+  "roles": ["user"],
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "refreshToken": "a1b2c3d4e5f6..."
 }
 ```
@@ -73,21 +101,64 @@ Create a new user account (Individual or Business).
 ---
 
 ### Login with Google
-**Endpoint:** `POST /auth/login/google`
+
+Authenticate using Google OAuth ID token.
+
+**Endpoint:** `POST /api/auth/google`
 
 **Request Body:**
+
 ```json
 {
   "idToken": "google_id_token_from_frontend"
 }
 ```
 
+**Response:** `200 OK`
+
+```json
+{
+  "id": 1,
+  "username": null,
+  "email": "user@gmail.com",
+  "roles": ["user"],
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "a1b2c3d4e5f6..."
+}
+```
+
+---
+
+### Logout
+
+Logout user and invalidate refresh token.
+
+**Endpoint:** `POST /api/auth/logout`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "message": "Logged out successfully"
+}
+```
+
 ---
 
 ### Refresh Access Token
-**Endpoint:** `POST /auth/refresh-token`
+
+Generate a new access token using refresh token.
+
+**Endpoint:** `POST `/api `/auth/refresh-token`
 
 **Request Body:**
+
 ```json
 {
   "refreshToken": "a1b2c3d4e5f6..."
@@ -95,10 +166,29 @@ Create a new user account (Individual or Business).
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
+```
+
+---
+
+### Using JWT Token for Protected Routes
+
+Include the access token in request headers using one of these methods:
+
+**Method 1: Bearer Token (Recommended)**
+
+```
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+**Method 2: x-access-token Header**
+
+```
+x-access-token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
 ---
@@ -106,38 +196,49 @@ Create a new user account (Individual or Business).
 ## User Profile
 
 ### Get Current User Profile
-**Endpoint:** `GET /users/me`
+
+**Endpoint:** `GET /api/users/me`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
-  "user_id": 1,
-  "email": "user@example.com",
-  "role": "individual",
-  "phone_number": "+84901234567",
-  "language": "vi",
-  "IndividualUser": {
-    "full_name": "John Doe"
-  }
+    "user_id":1,
+    "email": "john123@example.com",
+    "username": "johndoe123",
+    "account_type": "individual",
+    "status": "active",
+    "created_at": "2026-03-01T23:50:55.945Z",
+    "updated_at": "2026-03-01T23:50:55.945Z",
+    "IndividualUser": {
+        "individual_id": 8,
+        "full_name": "John Doe",
+        "user_id": 21
+    },
+    "BusinessUser": null
 }
 ```
 
 ---
 
 ### Update User Profile
-**Endpoint:** `PUT /users/me`
+
+**Endpoint:** `PUT /api/users/me`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Request Body:**
+
 ```json
 {
   "phone_number": "+84901234567",
@@ -151,14 +252,17 @@ Authorization: Bearer <access_token>
 ## User Preferences
 
 ### Get Notification Preferences
-**Endpoint:** `GET /users/me/preferences`
+
+**Endpoint:** `GET /api/users/me/preferences`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Response:** `200 OK`
+
 ```json
 [
   {
@@ -173,14 +277,17 @@ Authorization: Bearer <access_token>
 ---
 
 ### Update Notification Preference
-**Endpoint:** `PUT /users/me/preferences`
+
+**Endpoint:** `PUT /api/users/me/preferences`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Request Body:**
+
 ```json
 {
   "noti_type": "Traffic",
@@ -193,36 +300,43 @@ Authorization: Bearer <access_token>
 ## Notifications
 
 ### Get User Notifications
-**Endpoint:** `GET /users/notifications`
+
+**Endpoint:** `GET /api/users/notifications`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Query Parameters:**
+
 - `limit` (optional): Maximum number of notifications (default: 50)
 
 **Response:** `200 OK`
+
 ```json
 [
-  {
-    "noti_event_id": 1,
-    "name": "Heavy Traffic Alert",
-    "description": "Heavy traffic detected",
-    "type": "Traffic",
-    "is_read": false,
-    "issue_at": "2025-11-27T10:00:00.000Z"
-  }
+    {
+        "noti_event_id": 8,
+        "user_id": 21,
+        "name": "Canh bao mua lon",
+        "description": "Mua lon tai khu vuc Quan 1",
+        "type": "Flood",
+        "issue_at": "2026-02-20T17:42:30.113Z",
+        "is_read": false
+    }
 ]
 ```
 
 ---
 
 ### Mark Notification as Read
-**Endpoint:** `PUT /users/notifications/:id/read`
+
+**Endpoint:** `PUT /api/users/notifications/:id/read`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
@@ -232,13 +346,15 @@ Authorization: Bearer <access_token>
 ## Route & Location Management
 
 ### Get Saved Locations
+
 Get all saved locations for the authenticated user.
 
-**Endpoint:** `GET /routes/locations`
+**Endpoint:** `GET /api/routes/locations`
 
 **Authentication:** Required
 
 **Response:** `200 OK`
+
 ```json
 {
   "success": true,
@@ -266,13 +382,15 @@ Get all saved locations for the authenticated user.
 ---
 
 ### Save Location
+
 Save a new favorite location.
 
-**Endpoint:** `POST /routes/locations`
+**Endpoint:** `POST /api/routes/locations`
 
 **Authentication:** Required
 
 **Request Body:**
+
 ```json
 {
   "custom_name": "Coffee Shop",
@@ -283,6 +401,7 @@ Save a new favorite location.
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "success": true,
@@ -301,13 +420,15 @@ Save a new favorite location.
 ---
 
 ### Get Saved Routes
+
 Get all saved routes for the authenticated user.
 
-**Endpoint:** `GET /routes`
+**Endpoint:** `GET /api/routes`
 
 **Authentication:** Required
 
 **Response:** `200 OK`
+
 ```json
 {
   "success": true,
@@ -330,13 +451,15 @@ Get all saved routes for the authenticated user.
 ---
 
 ### Create Route
+
 Create and save a new route with start, end, and optional waypoints.
 
-**Endpoint:** `POST /routes`
+**Endpoint:** `POST /api/routes`
 
 **Authentication:** Required
 
 **Request Body:**
+
 ```json
 {
   "name": "Home to Office",
@@ -356,6 +479,7 @@ Create and save a new route with start, end, and optional waypoints.
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "success": true,
@@ -372,13 +496,15 @@ Create and save a new route with start, end, and optional waypoints.
 ---
 
 ### Get Route Details
+
 Get detailed information about a specific route including segments.
 
-**Endpoint:** `GET /routes/:id`
+**Endpoint:** `GET /api/routes/:id`
 
 **Authentication:** Required
 
 **Response:** `200 OK`
+
 ```json
 {
   "success": true,
@@ -410,13 +536,15 @@ Get detailed information about a specific route including segments.
 ---
 
 ### Get Route Analysis
+
 Get comprehensive weather and traffic analysis along a specific route. **This is the key endpoint for trip planning.**
 
-**Endpoint:** `GET /routes/:id/analysis`
+**Endpoint:** `GET /api/routes/:id/analysis`
 
 **Authentication:** Required
 
 **Response:** `200 OK`
+
 ```json
 {
   "success": true,
@@ -473,6 +601,7 @@ Get comprehensive weather and traffic analysis along a specific route. **This is
 ```
 
 **Example:**
+
 ```bash
 curl -X GET http://localhost:3000/api/routes/2/analysis \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
@@ -483,17 +612,20 @@ curl -X GET http://localhost:3000/api/routes/2/analysis \
 ## Prediction & Risk Assessment
 
 ### Get Weather Forecast
+
 Get weather forecast for a specific location (next 7 days).
 
-**Endpoint:** `GET /analysis/forecast?lat={lat}&lng={lng}`
+**Endpoint:** `GET /api/analysis/forecast?lat={lat}&lng={lng}`
 
 **Authentication:** Required
 
 **Query Parameters:**
+
 - `lat` (required): Latitude
 - `lng` (required): Longitude
 
 **Response:** `200 OK`
+
 ```json
 {
   "success": true,
@@ -532,6 +664,7 @@ Get weather forecast for a specific location (next 7 days).
 ```
 
 **Example:**
+
 ```bash
 curl -X GET "http://localhost:3000/api/analysis/forecast?lat=10.7769&lng=106.7009" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
@@ -540,6 +673,7 @@ curl -X GET "http://localhost:3000/api/analysis/forecast?lat=10.7769&lng=106.700
 ---
 
 ### Assess Trip Risk
+
 Assess risk level for a planned trip based on weather and traffic conditions. **This is the key endpoint for trip safety assessment.**
 
 **Endpoint:** `POST /analysis/assess-risk`
@@ -547,6 +681,7 @@ Assess risk level for a planned trip based on weather and traffic conditions. **
 **Authentication:** Required
 
 **Request Body (Option 1 - Using saved route):**
+
 ```json
 {
   "route_id": 2,
@@ -556,6 +691,7 @@ Assess risk level for a planned trip based on weather and traffic conditions. **
 ```
 
 **Request Body (Option 2 - Using coordinates):**
+
 ```json
 {
   "origin": {
@@ -571,6 +707,7 @@ Assess risk level for a planned trip based on weather and traffic conditions. **
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
   "success": true,
@@ -612,12 +749,14 @@ Assess risk level for a planned trip based on weather and traffic conditions. **
 ```
 
 **Risk Levels:**
+
 - `Low`: Score 0-7 - Favorable conditions
 - `Medium`: Score 8-14 - Moderate caution advised
 - `High`: Score 15-24 - Significant risk, extra precautions needed
 - `Critical`: Score 25+ - Consider postponing trip
 
 **Example:**
+
 ```bash
 curl -X POST http://localhost:3000/api/analysis/assess-risk \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
@@ -633,6 +772,7 @@ curl -X POST http://localhost:3000/api/analysis/assess-risk \
 ## Map & Real-time Data
 
 ### Get Traffic Data
+
 Get real-time traffic data in GeoJSON format with color-coded segments based on traffic conditions.
 
 **Endpoint:** `GET /map/traffic`
@@ -640,6 +780,7 @@ Get real-time traffic data in GeoJSON format with color-coded segments based on 
 **Authentication:** Not required (public endpoint)
 
 **Response:** `200 OK`
+
 ```json
 {
   "type": "FeatureCollection",
@@ -685,6 +826,7 @@ Get real-time traffic data in GeoJSON format with color-coded segments based on 
 ```
 
 **Traffic State (LOS - Level of Service):**
+
 - `A` - Free flow (Green: #00ff00)
 - `B` - Reasonably free flow (Light green: #7fff00)
 - `C` - Stable flow (Yellow: #ffff00)
@@ -693,6 +835,7 @@ Get real-time traffic data in GeoJSON format with color-coded segments based on 
 - `F` - Forced or breakdown flow (Red: #ff0000)
 
 **Usage:**
+
 - Display on map with color-coded road segments
 - Velocity in km/h
 - Use `color` property directly for rendering
@@ -700,6 +843,7 @@ Get real-time traffic data in GeoJSON format with color-coded segments based on 
 ---
 
 ### Get Weather Areas
+
 Get weather area information with current weather data.
 
 **Endpoint:** `GET /map/weather-areas`
@@ -707,6 +851,7 @@ Get weather area information with current weather data.
 **Authentication:** Not required (public endpoint)
 
 **Response:** `200 OK`
+
 ```json
 [
   {
@@ -763,6 +908,7 @@ Get weather area information with current weather data.
 ```
 
 **Weather Fields:**
+
 - `temp` - Temperature in Celsius
 - `feelslike` - Feels like temperature in Celsius
 - `humidity` - Humidity percentage (0-100)
@@ -779,6 +925,7 @@ Get weather area information with current weather data.
 - `icon` - Weather icon identifier
 
 **Usage:**
+
 - Display weather overlays on map
 - Show weather data for specific areas
 - Create weather-based route warnings
@@ -786,6 +933,7 @@ Get weather area information with current weather data.
 ---
 
 ### Get Incidents
+
 Get current incidents (floods, accidents, road closures) in GeoJSON format.
 
 **Endpoint:** `GET /map/incidents`
@@ -793,6 +941,7 @@ Get current incidents (floods, accidents, road closures) in GeoJSON format.
 **Authentication:** Not required (public endpoint)
 
 **Response:** `200 OK`
+
 ```json
 {
   "type": "FeatureCollection",
@@ -853,18 +1002,21 @@ Get current incidents (floods, accidents, road closures) in GeoJSON format.
 ```
 
 **Incident Types:**
+
 - `Flood` - Flooding or water accumulation
 - `Accident` - Traffic accident
 - `Traffic Jam` - Severe traffic congestion
 - `Road Closure` - Road closed or blocked
 
 **Severity Levels:**
+
 - `Low` - Minor impact (Yellow: #ffff00)
 - `Medium` - Moderate impact (Orange: #ffa500)
 - `High` - Major impact (Red-orange: #ff4500)
 - `Critical` - Severe impact (Red: #ff0000)
 
 **Usage:**
+
 - Display incident markers on map
 - Filter incidents by type or severity
 - Show incident details on click
@@ -877,16 +1029,19 @@ Get current incidents (floods, accidents, road closures) in GeoJSON format.
 **Authentication Required:** All business endpoints require JWT token and `business` role.
 
 ### Get Alert Policies
+
 Get all alert policies for the authenticated business user.
 
 **Endpoint:** `GET /business/policies`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Response:** `200 OK`
+
 ```json
 [
   {
@@ -908,16 +1063,19 @@ Authorization: Bearer <access_token>
 ---
 
 ### Create Alert Policy
+
 Create a new alert policy for business fleet management.
 
 **Endpoint:** `POST /business/policies`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Request Body:**
+
 ```json
 {
   "name": "Heavy Rain Alert",
@@ -933,6 +1091,7 @@ Authorization: Bearer <access_token>
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "policy_id": 2,
@@ -950,16 +1109,19 @@ Authorization: Bearer <access_token>
 ---
 
 ### Get Business Dashboard
+
 Get overview statistics for business account.
 
 **Endpoint:** `GET /business/dashboard`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
   "active_policies": 5,
@@ -987,16 +1149,19 @@ Authorization: Bearer <access_token>
 ---
 
 ### Get Weekly Report
+
 Generate weekly report with alert statistics and policy performance.
 
 **Endpoint:** `GET /business/reports/weekly`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
   "report_period": {
@@ -1044,16 +1209,19 @@ Authorization: Bearer <access_token>
 **Authentication Required:** All admin endpoints require JWT token and `admin` or `admin_officer` role.
 
 ### Get Admin Areas
+
 Get all administrative areas (filtered by officer if not super admin).
 
 **Endpoint:** `GET /admin/areas`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Response:** `200 OK`
+
 ```json
 [
   {
@@ -1074,16 +1242,19 @@ Authorization: Bearer <access_token>
 ---
 
 ### Create Admin Area
+
 Create a new administrative area.
 
 **Endpoint:** `POST /admin/areas`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Request Body:**
+
 ```json
 {
   "name": "District 3 - Residential Zone",
@@ -1093,6 +1264,7 @@ Authorization: Bearer <access_token>
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "area_id": 2,
@@ -1106,16 +1278,19 @@ Authorization: Bearer <access_token>
 ---
 
 ### Update Admin Area
+
 Update an existing administrative area.
 
 **Endpoint:** `PUT /admin/areas/:id`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Request Body:**
+
 ```json
 {
   "name": "District 3 - Updated Name",
@@ -1128,16 +1303,19 @@ Authorization: Bearer <access_token>
 ---
 
 ### Delete Admin Area
+
 Delete an administrative area.
 
 **Endpoint:** `DELETE /admin/areas/:id`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
   "message": "Area deleted successfully"
@@ -1147,24 +1325,29 @@ Authorization: Bearer <access_token>
 ---
 
 ### Get Response Scenarios
+
 Get all response scenarios, optionally filtered by area.
 
 **Endpoint:** `GET /admin/scenarios`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Query Parameters:**
+
 - `area_id` (optional): Filter by specific admin area
 
 **Example:**
+
 ```
 GET /admin/scenarios?area_id=1
 ```
 
 **Response:** `200 OK`
+
 ```json
 [
   {
@@ -1199,16 +1382,19 @@ GET /admin/scenarios?area_id=1
 ---
 
 ### Get Single Scenario
+
 Get detailed information about a specific scenario with all checklist items.
 
 **Endpoint:** `GET /admin/scenarios/:id`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
   "scenario_id": 1,
@@ -1233,16 +1419,19 @@ Authorization: Bearer <access_token>
 ---
 
 ### Create Response Scenario
+
 Create a new emergency response scenario.
 
 **Endpoint:** `POST /admin/scenarios`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Request Body:**
+
 ```json
 {
   "area_id": 1,
@@ -1252,6 +1441,7 @@ Authorization: Bearer <access_token>
 ```
 
 **Response:** `201 Created`
+
 ```json
 {
   "scenario_id": 2,
@@ -1264,16 +1454,19 @@ Authorization: Bearer <access_token>
 ---
 
 ### Add Checklist Item
+
 Add an action item to a response scenario.
 
 **Endpoint:** `POST /admin/scenarios/:id/items`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Request Body:**
+
 ```json
 {
   "name": "Deploy traffic police",
@@ -1285,6 +1478,7 @@ Authorization: Bearer <access_token>
 **Note:** If `item_order` is not provided, it will be automatically assigned as the next sequential number.
 
 **Response:** `201 Created`
+
 ```json
 {
   "item_id": 3,
@@ -1298,37 +1492,45 @@ Authorization: Bearer <access_token>
 ---
 
 ### Get Admin Dashboard
+
 Get system-wide statistics and health indicators.
 
 **Endpoint:** `GET /admin/dashboard`
 
 **Headers:**
+
 ```
 Authorization: Bearer <access_token>
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
-  "system_health": {
-    "database": "healthy",
-    "total_users": 1523,
-    "active_users_7d": 342,
-    "alerts_24h": 156
-  },
-  "users_by_role": [
-    { "role": "individual", "count": 1200 },
-    { "role": "business", "count": 300 },
-    { "role": "admin", "count": 23 }
-  ],
-  "admin_areas": 15,
-  "response_scenarios": 45,
-  "scenarios_by_type": [
-    { "applicable_event_type": "Flood", "count": 20 },
-    { "applicable_event_type": "Accident", "count": 15 },
-    { "applicable_event_type": "Traffic Jam", "count": 10 }
-  ],
-  "timestamp": "2025-11-27T15:30:00.000Z"
+    "system_health": {
+        "database": "healthy",
+        "total_users": 6,
+        "active_users_7d": 2,
+        "alerts_24h": 0
+    },
+    "users_by_role": [
+        {
+            "role": "admin",
+            "count": "1"
+        },
+        {
+            "role": "moderator",
+            "count": "1"
+        },
+        {
+            "role": "user",
+            "count": "5"
+        }
+    ],
+    "admin_areas": 0,
+    "response_scenarios": 0,
+    "scenarios_by_type": [],
+    "timestamp": "2026-03-04T12:04:11.731Z"
 }
 ```
 
@@ -1337,6 +1539,7 @@ Authorization: Bearer <access_token>
 ## Error Handling
 
 ### Standard Error Response
+
 ```json
 {
   "message": "Error description"
@@ -1344,6 +1547,7 @@ Authorization: Bearer <access_token>
 ```
 
 ### Common HTTP Status Codes
+
 - `200 OK` - Request successful
 - `201 Created` - Resource created
 - `400 Bad Request` - Invalid request
@@ -1353,6 +1557,7 @@ Authorization: Bearer <access_token>
 - `500 Internal Server Error` - Server error
 
 ### Role-based Access Error
+
 ```json
 {
   "message": "Forbidden: Insufficient permissions",
@@ -1368,12 +1573,14 @@ Authorization: Bearer <access_token>
 ### Business Endpoints
 
 **Get Policies:**
+
 ```bash
 curl http://localhost:3000/api/business/policies \
   -H "Authorization: Bearer YOUR_BUSINESS_TOKEN"
 ```
 
 **Create Policy:**
+
 ```bash
 curl -X POST http://localhost:3000/api/business/policies \
   -H "Authorization: Bearer YOUR_BUSINESS_TOKEN" \
@@ -1382,12 +1589,14 @@ curl -X POST http://localhost:3000/api/business/policies \
 ```
 
 **Get Dashboard:**
+
 ```bash
 curl http://localhost:3000/api/business/dashboard \
   -H "Authorization: Bearer YOUR_BUSINESS_TOKEN"
 ```
 
 **Get Weekly Report:**
+
 ```bash
 curl http://localhost:3000/api/business/reports/weekly \
   -H "Authorization: Bearer YOUR_BUSINESS_TOKEN"
@@ -1396,12 +1605,14 @@ curl http://localhost:3000/api/business/reports/weekly \
 ### Admin Endpoints
 
 **Get Areas:**
+
 ```bash
 curl http://localhost:3000/api/admin/areas \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
 ```
 
 **Create Area:**
+
 ```bash
 curl -X POST http://localhost:3000/api/admin/areas \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
@@ -1410,12 +1621,14 @@ curl -X POST http://localhost:3000/api/admin/areas \
 ```
 
 **Get Scenarios:**
+
 ```bash
 curl http://localhost:3000/api/admin/scenarios \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
 ```
 
 **Create Scenario:**
+
 ```bash
 curl -X POST http://localhost:3000/api/admin/scenarios \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
@@ -1424,6 +1637,7 @@ curl -X POST http://localhost:3000/api/admin/scenarios \
 ```
 
 **Add Checklist Item:**
+
 ```bash
 curl -X POST http://localhost:3000/api/admin/scenarios/1/items \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
@@ -1432,6 +1646,7 @@ curl -X POST http://localhost:3000/api/admin/scenarios/1/items \
 ```
 
 **Get Admin Dashboard:**
+
 ```bash
 curl http://localhost:3000/api/admin/dashboard \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
@@ -1440,6 +1655,7 @@ curl http://localhost:3000/api/admin/dashboard \
 ### Map Endpoints
 
 ### Standard Error Response
+
 ```json
 {
   "message": "Error description"
@@ -1447,6 +1663,7 @@ curl http://localhost:3000/api/admin/dashboard \
 ```
 
 ### Common HTTP Status Codes
+
 - `200 OK` - Request successful
 - `201 Created` - Resource created
 - `400 Bad Request` - Invalid request
@@ -1461,16 +1678,19 @@ curl http://localhost:3000/api/admin/dashboard \
 ### Map Endpoints
 
 **Get Traffic Data:**
+
 ```bash
 curl http://localhost:3000/api/map/traffic
 ```
 
 **Get Weather Areas:**
+
 ```bash
 curl http://localhost:3000/api/map/weather-areas
 ```
 
 **Get Incidents:**
+
 ```bash
 curl http://localhost:3000/api/map/incidents
 ```
@@ -1478,6 +1698,7 @@ curl http://localhost:3000/api/map/incidents
 ### Auth Endpoints
 
 **Register:**
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
@@ -1485,6 +1706,7 @@ curl -X POST http://localhost:3000/api/auth/register \
 ```
 
 **Login:**
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
@@ -1494,12 +1716,14 @@ curl -X POST http://localhost:3000/api/auth/login \
 ### User Endpoints
 
 **Get Profile:**
+
 ```bash
 curl http://localhost:3000/api/users/me \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
 **Update Profile:**
+
 ```bash
 curl -X PUT http://localhost:3000/api/users/me \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
@@ -1535,16 +1759,19 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 ## Database Schema
 
 ### User Tables
+
 - `user_account` - Main user table
 - `individual_user` - Individual user profiles
 - `business_user` - Business user profiles
 - `refresh_token` - Refresh token storage
 
 ### Notification Tables
+
 - `notification_preference` - User notification settings
 - `noti_event` - User notifications
 
 ### Map Tables
+
 - `route_segment` - Road segments with geometry
 - `traffic_reading` - Real-time traffic data
 - `weather_area` - Weather zones
@@ -1554,17 +1781,20 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 - `alert_event` - Incidents (floods, accidents)
 
 ### Route Tables
+
 - `saved_location` - User favorite locations
 - `saved_route` - User saved routes with waypoints
 - `trip` - Planned trips
 - `risk_assessment` - Trip risk analysis results
 
 ### Business Tables
+
 - `business_user` - Business user profiles
 - `alert_policy` - Business alert policies
 - `alert_event` - Triggered alerts
 
 ### Admin Tables
+
 - `administrative_officer` - Admin officers
 - `admin_area` - Managed geographical areas
 - `response_scenario` - Emergency response plans

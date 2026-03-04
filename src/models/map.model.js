@@ -54,6 +54,23 @@ const WeatherReading = sequelize.define('WeatherReading', {
     icon: { type: DataTypes.STRING(100) }
 }, { tableName: 'weather_reading', timestamps: false });
 
+// Weather Forecast - future weather predictions
+const WeatherForecast = sequelize.define('WeatherForecast', {
+    forecast_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    area_id: { type: DataTypes.INTEGER, allowNull: false },
+    forecast_datetime: { type: DataTypes.DATE, allowNull: false },
+    temp: { type: DataTypes.FLOAT },
+    tempmax: { type: DataTypes.FLOAT },
+    tempmin: { type: DataTypes.FLOAT },
+    humidity: { type: DataTypes.FLOAT },
+    precip: { type: DataTypes.FLOAT },
+    precipprob: { type: DataTypes.FLOAT },
+    windspeed: { type: DataTypes.FLOAT },
+    winddir: { type: DataTypes.FLOAT },
+    conditions: { type: DataTypes.STRING(255) },
+    icon: { type: DataTypes.STRING(100) }
+}, { tableName: 'weather_forecast', timestamps: false });
+
 // Alert Event - incidents like floods, accidents
 const AlertEvent = sequelize.define('AlertEvent', {
     alert_event_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -77,11 +94,15 @@ TimeSlot.belongsTo(WeatherArea, { foreignKey: 'area_id' });
 TimeSlot.hasMany(WeatherReading, { foreignKey: 'timeslot_id', onDelete: 'CASCADE' });
 WeatherReading.belongsTo(TimeSlot, { foreignKey: 'timeslot_id' });
 
+WeatherArea.hasMany(WeatherForecast, { foreignKey: 'area_id', onDelete: 'CASCADE' });
+WeatherForecast.belongsTo(WeatherArea, { foreignKey: 'area_id' });
+
 module.exports = {
     RouteSegment,
     TrafficReading,
     WeatherArea,
     TimeSlot,
     WeatherReading,
+    WeatherForecast,
     AlertEvent
 };

@@ -51,7 +51,7 @@ exports.loginGoogle = asyncHandler(async (req, res) => {
  */
 exports.logout = asyncHandler(async (req, res) => {
     // userId từ verifyToken middleware
-    const result = await authService.logout(req.userId);
+    const result = await authService.logout(req.user.id);
     
     res.status(200).json(result);
 });

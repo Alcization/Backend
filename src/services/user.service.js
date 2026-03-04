@@ -23,14 +23,14 @@ class UserService {
         if (data.language !== undefined) user.language = data.language;
         await user.save();
 
-        // Update role-specific profile
-        if (user.role === 'individual') {
+        // Update account-type specific profile
+        if (user.account_type === 'individual') {
             const profile = await IndividualUser.findOne({ where: { user_id: userId } });
             if (profile && data.full_name !== undefined) {
                 profile.full_name = data.full_name;
                 await profile.save();
             }
-        } else if (user.role === 'business') {
+        } else if (user.account_type === 'business') {
             const profile = await BusinessUser.findOne({ where: { user_id: userId } });
             if (profile) {
                 if (data.company_name !== undefined) profile.company_name = data.company_name;

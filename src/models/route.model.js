@@ -37,7 +37,7 @@ const Trip = sequelize.define('Trip', {
 // Risk Assessment - trip risk analysis
 const RiskAssessment = sequelize.define('RiskAssessment', {
     assessment_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    trip_id: { type: DataTypes.INTEGER, unique: true, references: { model: 'trip', key: 'trip_id' } },
+    trip_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'trip', key: 'trip_id' } },
     risk_level: { type: DataTypes.STRING(50) }, // 'Low', 'Medium', 'High', 'Critical'
     suggest_action: { type: DataTypes.TEXT },
     advisor_note: { type: DataTypes.TEXT }

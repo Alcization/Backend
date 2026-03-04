@@ -25,8 +25,8 @@ class RouteService {
             address: data.address,
             latitude: data.latitude,
             longitude: data.longitude,
-            coordinate: data.latitude && data.longitude ? 
-                sequelize.fn('ST_SetSRID', sequelize.fn('ST_MakePoint', data.longitude, data.latitude), 4326) : null
+            coordinate: data.longitude && data.latitude ? 
+                sequelize.literal(`point(${data.longitude}, ${data.latitude})`) : null
         });
         return location;
     }
@@ -55,35 +55,38 @@ class RouteService {
         const t = await sequelize.transaction();
         
         try {
+            // Calculate distance if start and end are provided
+            let distance = data.distance;
+            if (!distance && data.start && data.end) {
+                distance = this._calculateDistance(data.start, data.end);
+            }
+            
             // Create saved route
             const route = await SavedRoute.create({
                 user_id: userId,
                 name: data.name,
-                start_point: sequelize.fn('ST_SetSRID', sequelize.fn('ST_MakePoint', data.start.lng, data.start.lat), 4326),
-                end_point: sequelize.fn('ST_SetSRID', sequelize.fn('ST_MakePoint', data.end.lng, data.end.lat), 4326),
+                start_point: data.start ? sequelize.literal(`point(${data.start.lng}, ${data.start.lat})`) : null,
+                end_point: data.end ? sequelize.literal(`point(${data.end.lng}, ${data.end.lat})`) : null,
                 waypoints: data.waypoints ? JSON.stringify(data.waypoints) : null,
-                distance: data.distance || this._calculateDistance(data.start, data.end)
+                distance: distance
             }, { transaction: t });
 
-            // Create route segments
-            // Simple implementation: create segments between consecutive points
-            const points = [data.start, ...(data.waypoints || []), data.end];
+            // Create route segments if points are provided
+            if (data.start && data.end) {
+                const points = [data.start, ...(data.waypoints || []), data.end];
             
-            for (let i = 0; i < points.length - 1; i++) {
-                const start = points[i];
-                const end = points[i + 1];
-                
-                await RouteSegment.create({
-                    saved_route_id: route.route_id,
-                    start_point: sequelize.fn('ST_SetSRID', sequelize.fn('ST_MakePoint', start.lng, start.lat), 4326),
-                    end_point: sequelize.fn('ST_SetSRID', sequelize.fn('ST_MakePoint', end.lng, end.lat), 4326),
-                    coordinate: sequelize.fn('ST_SetSRID', 
-                        sequelize.fn('ST_MakeLine',
-                            sequelize.fn('ST_MakePoint', start.lng, start.lat),
-                            sequelize.fn('ST_MakePoint', end.lng, end.lat)
-                        ), 4326),
-                    order_in_route: i + 1
-                }, { transaction: t });
+                for (let i = 0; i < points.length - 1; i++) {
+                    const start = points[i];
+                    const end = points[i + 1];
+                    
+                    await RouteSegment.create({
+                        saved_route_id: route.route_id,
+                        start_point: sequelize.literal(`point(${start.lng}, ${start.lat})`),
+                        end_point: sequelize.literal(`point(${end.lng}, ${end.lat})`),
+                        coordinate: sequelize.literal(`path '[(${start.lng},${start.lat}),(${end.lng},${end.lat})]'`),
+                        order_in_route: i + 1
+                    }, { transaction: t });
+                }
             }
 
             await t.commit();
@@ -132,8 +135,10 @@ class RouteService {
             SELECT 
                 rs.segment_id,
                 rs.order_in_route,
-                ST_AsGeoJSON(rs.start_point) as start_point,
-                ST_AsGeoJSON(rs.end_point) as end_point,
+                rs.start_point[0] as start_lng,
+                rs.start_point[1] as start_lat,
+                rs.end_point[0] as end_lng,
+                rs.end_point[1] as end_lat,
                 tr.velocity,
                 tr.traffic_state,
                 tr.time_reading
@@ -154,12 +159,13 @@ class RouteService {
             type: QueryTypes.SELECT
         });
 
-        // Get weather areas along the route
+        // Get weather areas along the route - simplified query without spatial filters
         const weatherQuery = `
             SELECT DISTINCT
                 wa.area_id,
                 wa.name,
-                ST_AsGeoJSON(wa.center_point) as center_point,
+                wa.center_point[0] as center_lng,
+                wa.center_point[1] as center_lat,
                 wr.temp,
                 wr.feelslike,
                 wr.humidity,
@@ -171,16 +177,12 @@ class RouteService {
             FROM weather_area wa
             JOIN time_slot ts ON ts.area_id = wa.area_id
             JOIN weather_reading wr ON wr.timeslot_id = ts.timeslot_id
-            WHERE ST_DWithin(
-                wa.center_point::geography,
-                (SELECT ST_MakeLine(start_point, end_point) FROM route_segment WHERE saved_route_id = :routeId LIMIT 1)::geography,
-                5000
-            )
-            AND ts.time_value = (
+            WHERE ts.time_value = (
                 SELECT MAX(time_value)
                 FROM time_slot
                 WHERE area_id = wa.area_id
             )
+            LIMIT 10
         `;
 
         const weatherData = await sequelize.query(weatherQuery, {

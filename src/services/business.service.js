@@ -24,19 +24,22 @@ class BusinessService {
      * Create a new alert policy
      */
     async createPolicy(userId, data) {
+        // Validate input data
+        if (!data) {
+            throw new Error('Policy data is required');
+        }
+
         const businessUser = await BusinessUser.findOne({ where: { user_id: userId } });
         if (!businessUser) throw new Error('Business user not found');
 
+        // Only save fields that exist in database schema
         const policy = await AlertPolicy.create({
             business_id: businessUser.business_id,
-            name: data.name,
+            name: data.name || 'Untitled Policy',
             description: data.description,
             start_hour: data.start_hour,
             end_hour: data.end_hour,
             week_day: data.week_day,
-            wind_threshold: data.wind_threshold,
-            rain_threshold: data.rain_threshold,
-            temp_threshold: data.temp_threshold,
             status: data.status !== undefined ? data.status : true
         });
 

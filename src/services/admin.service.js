@@ -31,6 +31,18 @@ class AdminService {
      * Create a new admin area
      */
     async createArea(userId, data) {
+        if (!data || typeof data !== 'object') {
+            throw new Error('Invalid request: area data is required');
+        }
+
+        if (!data.name) {
+            throw new Error('Invalid request: name is required');
+        }
+
+        if (!data.area_type) {
+            throw new Error('Invalid request: area_type is required');
+        }
+
         const officer = await AdministrativeOfficer.findOne({ where: { user_id: userId } });
         
         const area = await AdminArea.create({
@@ -83,6 +95,28 @@ class AdminService {
      * Create a new response scenario
      */
     async createScenario(data) {
+        if (!data || typeof data !== 'object') {
+            throw new Error('Invalid request: scenario data is required');
+        }
+
+        if (!data.area_id) {
+            throw new Error('Invalid request: area_id is required');
+        }
+
+        if (!data.name) {
+            throw new Error('Invalid request: name is required');
+        }
+
+        if (!data.applicable_event_type) {
+            throw new Error('Invalid request: applicable_event_type is required');
+        }
+
+        // Verify that the area exists
+        const area = await AdminArea.findByPk(data.area_id);
+        if (!area) {
+            throw new Error(`Area with id ${data.area_id} not found`);
+        }
+
         const scenario = await ResponseScenario.create({
             area_id: data.area_id,
             name: data.name,
@@ -96,6 +130,14 @@ class AdminService {
      * Add checklist item to a scenario
      */
     async addChecklistItem(scenarioId, data) {
+        if (!data || typeof data !== 'object') {
+            throw new Error('Invalid request: checklist item data is required');
+        }
+
+        if (!data.name) {
+            throw new Error('Invalid request: name is required');
+        }
+
         // Verify scenario exists
         const scenario = await ResponseScenario.findByPk(scenarioId);
         if (!scenario) throw new Error('Scenario not found');
@@ -125,9 +167,11 @@ class AdminService {
     async getDashboard() {
         // Total users by role
         const usersByRoleQuery = `
-            SELECT role, COUNT(*) as count
-            FROM user_account
-            GROUP BY role
+            SELECT r.name as role, COUNT(DISTINCT ur.user_id) as count
+            FROM roles r
+            LEFT JOIN user_roles ur ON r.id = ur.role_id
+            GROUP BY r.name
+            ORDER BY r.name
         `;
         const usersByRole = await sequelize.query(usersByRoleQuery, { type: QueryTypes.SELECT });
 
@@ -162,10 +206,17 @@ class AdminService {
         `;
         const scenariosByType = await sequelize.query(scenariosByTypeQuery, { type: QueryTypes.SELECT });
 
+        // Total unique users count
+        const totalUsersQuery = `
+            SELECT COUNT(*) as count
+            FROM user_account
+        `;
+        const totalUsersResult = await sequelize.query(totalUsersQuery, { type: QueryTypes.SELECT });
+
         // System health indicators
         const systemHealth = {
             database: 'healthy',
-            total_users: usersByRole.reduce((sum, role) => sum + parseInt(role.count), 0),
+            total_users: parseInt(totalUsersResult[0]?.count || 0),
             active_users_7d: parseInt(activeUsers[0]?.count || 0),
             alerts_24h: parseInt(recentAlerts[0]?.count || 0)
         };
@@ -184,6 +235,10 @@ class AdminService {
      * Update an admin area
      */
     async updateArea(areaId, data) {
+        if (!data || typeof data !== 'object') {
+            throw new Error('Invalid request: area data is required');
+        }
+
         const area = await AdminArea.findByPk(areaId);
         if (!area) throw new Error('Area not found');
 

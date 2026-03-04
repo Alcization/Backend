@@ -1,19 +1,14 @@
-# Dependencies
 node_modules/
 
-# Environment Variables (QUAN TRỌNG)
 .env
 
-# Logs
 npm-debug.log*
 logs
 *.log
 
-# IDE / Editors
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# Docker (Tùy chọn: thường vẫn commit Dockerfile, nhưng ignore docker-compose override)
 docker-compose.override.yml

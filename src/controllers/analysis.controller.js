@@ -40,7 +40,7 @@ class AnalysisController {
      */
     async assessRisk(req, res) {
         const assessment = await analysisService.assessTripRisk(
-            req.user.user_id,
+            req.user.id,
             req.body
         );
 

@@ -11,11 +11,7 @@ const AlertPolicy = sequelize.define('AlertPolicy', {
     start_hour: { type: DataTypes.TIME },
     end_hour: { type: DataTypes.TIME },
     week_day: { type: DataTypes.STRING(20) }, // 'Mon,Tue,Wed...'
-    status: { type: DataTypes.BOOLEAN, defaultValue: true },
-    // Threshold conditions
-    wind_threshold: { type: DataTypes.FLOAT },
-    rain_threshold: { type: DataTypes.FLOAT },
-    temp_threshold: { type: DataTypes.FLOAT }
+    status: { type: DataTypes.BOOLEAN, defaultValue: true }
 }, { tableName: 'alert_policy', timestamps: false });
 
 // Alert Event - triggered alerts

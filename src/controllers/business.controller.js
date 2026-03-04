@@ -11,6 +11,15 @@ exports.getPolicies = asyncHandler(async (req, res) => {
 // POST /business/policies - Create new policy
 exports.createPolicy = asyncHandler(async (req, res) => {
     const userId = req.user.id;
+    
+    // Validate request body
+    if (!req.body || Object.keys(req.body).length === 0) {
+        return res.status(400).json({ 
+            message: 'Request body is required',
+            received: req.body 
+        });
+    }
+    
     const policy = await businessService.createPolicy(userId, req.body);
     res.status(201).json(policy);
 });
