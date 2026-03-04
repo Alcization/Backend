@@ -121,103 +121,10 @@
 
 ## Quick Start:
 
-### 1. Setup Database
-```bash
-# Chạy migration script
-psql -U postgres -d weather_traffic -f src/models/migration.sql
-```
-
-### 2. Khởi động server
+### 1. Khởi động server
 ```bash
 npm install
 npm start
 # Roles sẽ tự động được khởi tạo
 ```
 
-### 3. Test API
-Import file `postman_collection.json` vào Postman/Insomnia để test.
-
----
-
-# API
-A. Auth & Core User (/api/auth & /api/users)
-
-**Authentication:**
-- POST /auth/signup - Đăng ký (với validation)
-- POST /auth/signin - Đăng nhập (email hoặc username)
-- POST /auth/google - Đăng nhập qua Google OAuth
-- POST /auth/logout - Đăng xuất (xóa refresh token)
-- POST /auth/refresh-token - Làm mới access token
-
-**Role-Based Access (Demo):**
-- GET /users/test/all - Public content (không cần auth)
-- GET /users/test/user - User content (cần authentication)
-- GET /users/test/mod - Moderator content (cần role moderator)
-- GET /users/test/admin - Admin content (cần role admin)
-
-**User Profile:**
-- GET /users/me - Lấy thông tin profile + Roles
-- PUT /users/me - Cập nhật profile
-- GET /users/me/preferences - Lấy cấu hình thông báo
-- PUT /users/me/preferences - Cập nhật ngưỡng cảnh báo cá nhân
-- GET /users/notifications - Lấy danh sách thông báo
-- PUT /users/notifications/:id/read - Đánh dấu đã đọc
-
-B. Route & Location Management (/api/routes)
-
-GET /locations: Lấy danh sách saved_location.
-
-POST /locations: Lưu vị trí mới.
-
-GET /routes: Lấy danh sách saved_route.
-
-POST /routes: Tạo tuyến đường mới (Input: Start, End, Waypoints -> Backend tính toán route_segment).
-
-GET /routes/:id: Xem chi tiết một tuyến đường.
-
-GET /routes/:id/analysis: (Quan trọng) Trả về dữ liệu tổng hợp thời tiết + giao thông trên tuyến đường này (Mapping use case "Xem phân tích thời tiết dọc tuyến").
-
-C. Map & Real-time Data (/api/map)
-
-GET /map/traffic: Trả về GeoJSON trạng thái giao thông (các route_segment có màu sắc theo vận tốc/tắc đường).
-
-GET /map/weather-areas: Trả về các vùng thời tiết (weather_area).
-
-GET /map/incidents: Trả về các điểm ngập lụt/tai nạn hiện tại.
-
-D. Prediction & Risk Assessment (/api/analysis)
-Logic tính toán rủi ro.
-
-POST /analysis/forecast: Input (Lat, Lng) -> Output: Thời tiết dự báo.
-
-POST /analysis/trip-risk:
-
-Input: { route_id, start_time } hoặc { origin, destination, start_time }.
-
-Output: Risk Level, Suggestion (Lưu vào bảng risk_assessment).
-
-Mapping: Use Case "Lập kế hoạch chuyến đi", "Đánh giá rủi ro".
-
-E. Business Specific Features (/api/business)
-Dành riêng cho Business User quản lý chính sách và báo cáo.
-
-GET /business/policies: Xem danh sách alert_policy (Quy định ngưỡng cảnh báo riêng cho đội xe).
-
-POST /business/policies: Tạo policy mới (Ví dụ: Cảnh báo nếu gió > cấp 7 trong khung giờ 8h-17h).
-
-GET /business/dashboard: Số liệu tổng quan (Số xe đang chạy, số cảnh báo đã kích hoạt).
-
-GET /business/reports/weekly: Tải báo cáo PDF tự động.
-
-F. Admin & Response Scenarios (/api/admin)
-Quản lý khu vực và kịch bản ứng phó (Runbooks).
-
-GET /admin/areas: CRUD admin_area (Khu vực quản lý).
-
-GET /admin/scenarios: Danh sách kịch bản (response_scenario).
-
-POST /admin/scenarios: Tạo kịch bản mới (VD: Kịch bản chống ngập Q1).
-
-POST /admin/scenarios/:id/items: Thêm checklist_item vào kịch bản.
-
-GET /admin/dashboard: Dashboard tổng quan hệ thống (System health, Active users).
