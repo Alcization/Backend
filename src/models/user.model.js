@@ -2,11 +2,6 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 const Role = require('./role.model');
 
-/**
- * User Models - Kiến trúc JWT Authentication với Role-Based Access Control
- * Theo: https://www.corbado.com/blog/nodejs-express-postgresql-jwt-authentication-roles
- */
-
 // 1. Bảng cha: UserAccount
 const UserAccount = sequelize.define('UserAccount', {
     user_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -24,6 +19,8 @@ const UserAccount = sequelize.define('UserAccount', {
         unique: true
     },
     password_hash: { type: DataTypes.STRING, allowNull: false },
+    phone_number: { type: DataTypes.STRING, allowNull: true },
+    language: { type: DataTypes.STRING, allowNull: true, defaultValue: 'vi' },
     account_type: { 
         type: DataTypes.ENUM('individual', 'business'), 
         allowNull: false,

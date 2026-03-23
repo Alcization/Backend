@@ -27,7 +27,13 @@ router.post('/logout', authJwt.verifyToken, authCtrl.logout);
 // Làm mới access token
 router.post('/refresh-token', authCtrl.refreshToken);
 
-// Verify OTP (giữ lại nếu cần)
+// Gửi OTP tới email
+router.post('/send-otp', authCtrl.sendOtp);
+
+// Verify OTP
 router.post('/verify-otp', authCtrl.verifyOtp);
+
+// Cập nhật mật khẩu theo email
+router.post('/reset-password', authCtrl.resetPassword);
 
 module.exports = router;

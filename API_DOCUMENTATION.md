@@ -155,7 +155,7 @@ Authorization: Bearer <access_token>
 
 Generate a new access token using refresh token.
 
-**Endpoint:** `POST `/api `/auth/refresh-token`
+**Endpoint:** `POST /api/auth/refresh-token`
 
 **Request Body:**
 
@@ -172,6 +172,111 @@ Generate a new access token using refresh token.
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
+
+---
+
+### Send OTP to Email
+
+Generate and send a 6-digit OTP code to the provided email.
+
+**Endpoint:** `POST /api/auth/send-otp`
+
+**Request Body:**
+
+```json
+{
+  "email": "user@example.com"
+}
+```
+
+**Field Descriptions:**
+
+- `email` (required): Target email to receive OTP
+
+**Response:** `200 OK`
+
+```json
+{
+  "message": "OTP sent successfully"
+}
+```
+
+**Notes:**
+
+- OTP has a validity period of 5 minutes.
+- If an email requests OTP multiple times, only the newest OTP is valid.
+
+---
+
+### Verify OTP
+
+Verify OTP code for an email.
+
+**Endpoint:** `POST /api/auth/verify-otp`
+
+**Request Body:**
+
+```json
+{
+  "email": "user@example.com",
+  "code": "123456"
+}
+```
+
+**Field Descriptions:**
+
+- `email` (required): Email that received OTP
+- `code` (required): 6-digit OTP code
+
+**Response:** `200 OK`
+
+```json
+{
+  "message": "OTP verified successfully",
+  "ok": true
+}
+```
+
+**Common Error Cases:**
+
+- `400 Bad Request`: `Invalid OTP`
+- `400 Bad Request`: `OTP expired`
+
+---
+
+### Reset Password by Email
+
+Update account password using email and new password.
+
+**Endpoint:** `POST /api/auth/reset-password`
+
+**Request Body:**
+
+```json
+{
+  "email": "user@example.com",
+  "newPassword": "NewPass123"
+}
+```
+
+**Field Descriptions:**
+
+- `email` (required): Account email
+- `newPassword` (required): New password (minimum 6 characters)
+
+**Response:** `200 OK`
+
+```json
+{
+  "message": "Password updated successfully"
+}
+```
+
+**Common Error Cases:**
+
+- `400 Bad Request`: `Email and newPassword are required`
+- `400 Bad Request`: `newPassword must be at least 6 characters`
+- `404 Not Found`: `User not found`
 
 ---
 
@@ -322,7 +427,7 @@ Authorization: Bearer <access_token>
         "user_id": 21,
         "name": "Canh bao mua lon",
         "description": "Mua lon tai khu vuc Quan 1",
-        "type": "Flood",
+        "type": "Warning",
         "issue_at": "2026-02-20T17:42:30.113Z",
         "is_read": false
     }
@@ -414,6 +519,62 @@ Save a new favorite location.
     "longitude": 106.6900,
     "created_at": "2025-11-27T12:00:00.000Z"
   }
+}
+```
+
+---
+
+### Update Saved Location
+
+Update an existing favorite location of the authenticated user.
+
+**Endpoint:** `PUT /api/routes/locations/:id`
+
+**Authentication:** Required
+
+**Request Body:**
+
+```json
+{
+  "custom_name": "Gym",
+  "address": "999 Fitness St, District 7",
+  "latitude": 10.7300,
+  "longitude": 106.7100
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "location_id": 3,
+    "user_id": 1,
+    "custom_name": "Gym",
+    "address": "999 Fitness St, District 7",
+    "latitude": 10.7300,
+    "longitude": 106.7100
+  }
+}
+```
+
+---
+
+### Delete Saved Location
+
+Delete a saved location of the authenticated user.
+
+**Endpoint:** `DELETE /api/routes/locations/:id`
+
+**Authentication:** Required
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Location deleted successfully"
 }
 ```
 
@@ -530,6 +691,156 @@ Get detailed information about a specific route including segments.
       }
     ]
   }
+}
+```
+
+---
+
+### Save Route Search History
+
+Save a route search action for the authenticated user.
+
+**Endpoint:** `POST /api/routes/history`
+
+**Authentication:** Required
+
+**Request Body:**
+
+```json
+{
+  "origin": "Bến Thành Market",
+  "destination": "Tân Sơn Nhất Airport",
+  "weather_status": "Light Rain",
+  "time": "2026-03-23T08:30:00+07:00"
+}
+```
+
+Notes:
+
+- `time` is optional. If omitted, server will use current timestamp.
+- `origin` and `destination` are required (route place names).
+
+**Response:** `201 Created`
+
+```json
+{
+  "success": true,
+  "data": {
+    "trip_id": 15,
+    "user_id": 1,
+    "origin": "Bến Thành Market",
+    "destination": "Tân Sơn Nhất Airport",
+    "weather_status": "Light Rain",
+    "time": "2026-03-23T01:30:00.000Z"
+  }
+}
+```
+
+---
+
+### Get Route Search History
+
+Get route search history of the authenticated user (newest first).
+
+**Endpoint:** `GET /api/routes/history`
+
+**Authentication:** Required
+
+**Response:** `200 OK`
+
+```json
+{
+    "success": true,
+    "data": [
+        {
+            "trip_id": 2,
+            "user_id": 15,
+            "origin": "Phường Đông Hòa,Thành Phố Dĩ An,Tỉnh Bình Dương",
+            "destination": "Suối Tiên Depot Phường Long Bình,Thành Phố Hồ Chí Minh",
+            "time": "2026-03-23T01:30:00.000Z",
+            "weather_status": "Nhiều Mây"
+        },
+        {
+            "trip_id": 1,
+            "user_id": 15,
+            "origin": "Phường Đông Hòa,Thành Phố Dĩ An,Tỉnh Bình Dương",
+            "destination": "Chợ Bến Thành Phường Bến Thành,Thành Phố Hồ Chí Minh",
+            "time": "2026-03-23T01:30:00.000Z",
+            "weather_status": "Mưa"
+        }
+    ]
+}
+```
+
+---
+
+### Save Weather Search History
+
+Save a weather search action at a location for the authenticated user.
+
+**Endpoint:** `POST /api/routes/weather-history`
+
+**Authentication:** Required
+
+**Request Body:**
+
+```json
+{
+  "location": "Phường Đông Hòa,Thành Phố Dĩ An,Tỉnh Bình Dương",
+  "weather_status": "Mưa",
+  "temp": 28,
+  "time": "2026-03-23T18:15:00+07:00"
+}
+```
+
+Notes:
+
+- `location` is required (location name/address where weather was checked).
+- `weather_status` and `temp` are optional.
+- `time` is optional. If omitted, server will use current timestamp.
+- `temp` must be an integer value.
+
+**Response:** `201 Created`
+
+```json
+{
+  "success": true,
+  "data": {
+    "location_id": 42,
+    "user_id": 1,
+    "location": "Phường Đông Hòa,Thành Phố Dĩ An,Tỉnh Bình Dương",
+    "weather_status": "Mưa",
+    "temp": 28,
+    "time": "2026-03-23T11:15:00.000Z"
+  }
+}
+```
+
+---
+
+### Get Weather Search History
+
+Get weather search history of the authenticated user (newest first).
+
+**Endpoint:** `GET /api/routes/weather-history`
+
+**Authentication:** Required
+
+**Response:** `200 OK`
+
+```json
+{
+    "success": true,
+    "data": [
+        {
+            "location_id": 1,
+            "user_id": 15,
+            "location": "Phường Đông Hòa,Thành Phố Dĩ An,Tỉnh Bình Dương",
+            "time": "2026-03-23T11:15:00.000Z",
+            "weather_status": "Mưa",
+            "temp": 28
+        }
+    ]
 }
 ```
 

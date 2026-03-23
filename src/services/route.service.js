@@ -1,4 +1,4 @@
-const { SavedLocation, SavedRoute } = require('../models/route.model');
+const { SavedLocation, SavedRoute, HistoryTrip, HistoryWeather } = require('../models/route.model');
 const { RouteSegment, TrafficReading, WeatherArea, TimeSlot, WeatherReading } = require('../models/map.model');
 const { QueryTypes } = require('sequelize');
 const sequelize = require('../config/database');
@@ -19,6 +19,12 @@ class RouteService {
      * Save a new location
      */
     async createLocation(userId, data) {
+        if (!data || typeof data !== 'object') {
+            const error = new Error('Request body is required');
+            error.status = 400;
+            throw error;
+        }
+
         const location = await SavedLocation.create({
             user_id: userId,
             custom_name: data.custom_name,
@@ -29,6 +35,72 @@ class RouteService {
                 sequelize.literal(`point(${data.longitude}, ${data.latitude})`) : null
         });
         return location;
+    }
+
+    /**
+     * Update a saved location for a user
+     */
+    async updateLocation(locationId, userId, data) {
+        if (!data || typeof data !== 'object') {
+            const error = new Error('Request body is required');
+            error.status = 400;
+            throw error;
+        }
+
+        const location = await SavedLocation.findOne({
+            where: { location_id: locationId, user_id: userId }
+        });
+
+        if (!location) {
+            const error = new Error('Location not found');
+            error.status = 404;
+            throw error;
+        }
+
+        const updateData = {};
+
+        if (data.custom_name !== undefined) updateData.custom_name = data.custom_name;
+        if (data.address !== undefined) updateData.address = data.address;
+        if (data.latitude !== undefined) updateData.latitude = data.latitude;
+        if (data.longitude !== undefined) updateData.longitude = data.longitude;
+
+        if (Object.keys(updateData).length === 0) {
+            const error = new Error('No fields provided for update');
+            error.status = 400;
+            throw error;
+        }
+
+        const nextLatitude = updateData.latitude !== undefined ? updateData.latitude : location.latitude;
+        const nextLongitude = updateData.longitude !== undefined ? updateData.longitude : location.longitude;
+
+        updateData.coordinate = (nextLatitude !== null && nextLongitude !== null && nextLatitude !== undefined && nextLongitude !== undefined)
+            ? sequelize.literal(`point(${nextLongitude}, ${nextLatitude})`)
+            : null;
+
+        await SavedLocation.update(updateData, {
+            where: { location_id: locationId, user_id: userId }
+        });
+
+        return SavedLocation.findOne({
+            where: { location_id: locationId, user_id: userId }
+        });
+    }
+
+    /**
+     * Delete a saved location for a user
+     */
+    async deleteLocation(locationId, userId) {
+        const deleted = await SavedLocation.destroy({
+            where: { location_id: locationId, user_id: userId }
+        });
+
+        if (!deleted) {
+            const error = new Error('Location not found');
+            error.status = 404;
+            throw error;
+        }
+
+        return true;
     }
 
     /**
@@ -95,6 +167,108 @@ class RouteService {
             await t.rollback();
             throw error;
         }
+    }
+
+    /**
+     * Save route search history for a user
+     */
+    async createSearchHistory(userId, data) {
+        if (!data || typeof data !== 'object') {
+            const error = new Error('Request body is required');
+            error.status = 400;
+            throw error;
+        }
+
+        const { origin, destination, weather_status, time } = data;
+
+        if (!origin || !destination) {
+            const error = new Error('origin and destination are required');
+            error.status = 400;
+            throw error;
+        }
+
+        const searchTime = time ? new Date(time) : new Date();
+        if (Number.isNaN(searchTime.getTime())) {
+            const error = new Error('time must be a valid ISO datetime');
+            error.status = 400;
+            throw error;
+        }
+
+        const history = await HistoryTrip.create({
+            user_id: userId,
+            origin,
+            destination,
+            weather_status: weather_status || null,
+            time: searchTime
+        });
+
+        return history;
+    }
+
+    /**
+     * Get route search history for a user
+     */
+    async getSearchHistory(userId) {
+        const histories = await HistoryTrip.findAll({
+            where: { user_id: userId },
+            order: [['time', 'DESC'], ['trip_id', 'DESC']]
+        });
+
+        return histories;
+    }
+
+    /**
+     * Save weather search history for a user
+     */
+    async createWeatherHistory(userId, data) {
+        if (!data || typeof data !== 'object') {
+            const error = new Error('Request body is required');
+            error.status = 400;
+            throw error;
+        }
+
+        const { location, weather_status, temp, time } = data;
+
+        if (!location) {
+            const error = new Error('location is required');
+            error.status = 400;
+            throw error;
+        }
+
+        const searchTime = time ? new Date(time) : new Date();
+        if (Number.isNaN(searchTime.getTime())) {
+            const error = new Error('time must be a valid ISO datetime');
+            error.status = 400;
+            throw error;
+        }
+
+        if (temp !== undefined && (typeof temp !== 'number' || !Number.isInteger(temp))) {
+            const error = new Error('temp must be an integer');
+            error.status = 400;
+            throw error;
+        }
+
+        const history = await HistoryWeather.create({
+            user_id: userId,
+            location,
+            weather_status: weather_status || null,
+            temp: temp !== undefined ? temp : null,
+            time: searchTime
+        });
+
+        return history;
+    }
+
+    /**
+     * Get weather search history for a user
+     */
+    async getWeatherHistory(userId) {
+        const histories = await HistoryWeather.findAll({
+            where: { user_id: userId },
+            order: [['time', 'DESC'], ['location_id', 'DESC']]
+        });
+
+        return histories;
     }
 
     /**

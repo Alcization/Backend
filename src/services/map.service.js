@@ -81,16 +81,10 @@ class MapService {
                 wr.feelslike,
                 wr.humidity,
                 wr.precip,
-                wr.precipprob,
-                wr.preciptype,
                 wr.windspeed,
-                wr.windgust,
-                wr.winddir,
-                wr.cloudcover,
                 wr.visibility,
                 wr.uvindex,
-                wr.conditions,
-                wr.icon
+                wr.conditions
             FROM weather_area wa
             LEFT JOIN LATERAL (
                 SELECT timeslot_id, time_value
@@ -100,6 +94,7 @@ class MapService {
                 LIMIT 1
             ) ts ON true
             LEFT JOIN weather_reading wr ON wr.timeslot_id = ts.timeslot_id
+            WHERE SUBSTRING(wa.name FROM '\\d+')::INT % 5 = 0
         `;
 
         const areas = await sequelize.query(query, { type: QueryTypes.SELECT });
@@ -117,16 +112,10 @@ class MapService {
                 feelslike: area.feelslike,
                 humidity: area.humidity,
                 precip: area.precip,
-                precipprob: area.precipprob,
-                preciptype: area.preciptype,
                 windspeed: area.windspeed,
-                windgust: area.windgust,
-                winddir: area.winddir,
-                cloudcover: area.cloudcover,
                 visibility: area.visibility,
                 uvindex: area.uvindex,
                 conditions: area.conditions,
-                icon: area.icon
             } : null
         }));
     }

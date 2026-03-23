@@ -24,6 +24,28 @@ class RouteController {
     }
 
     /**
+     * PUT /routes/locations/:id - Update a saved location
+     */
+    async updateLocation(req, res) {
+        const location = await routeService.updateLocation(req.params.id, req.user.id, req.body);
+        res.json({
+            success: true,
+            data: location
+        });
+    }
+
+    /**
+     * DELETE /routes/locations/:id - Delete a saved location
+     */
+    async deleteLocation(req, res) {
+        await routeService.deleteLocation(req.params.id, req.user.id);
+        res.json({
+            success: true,
+            message: 'Location deleted successfully'
+        });
+    }
+
+    /**
      * GET /routes - Get all saved routes
      */
     async getRoutes(req, res) {
@@ -42,6 +64,50 @@ class RouteController {
         res.status(201).json({
             success: true,
             data: route
+        });
+    }
+
+    /**
+     * POST /routes/history - Save route search history
+     */
+    async createSearchHistory(req, res) {
+        const history = await routeService.createSearchHistory(req.user.id, req.body);
+        res.status(201).json({
+            success: true,
+            data: history
+        });
+    }
+
+    /**
+     * GET /routes/history - Get route search history
+     */
+    async getSearchHistory(req, res) {
+        const history = await routeService.getSearchHistory(req.user.id);
+        res.json({
+            success: true,
+            data: history
+        });
+    }
+
+    /**
+     * POST /routes/weather-history - Save weather search history
+     */
+    async createWeatherHistory(req, res) {
+        const history = await routeService.createWeatherHistory(req.user.id, req.body);
+        res.status(201).json({
+            success: true,
+            data: history
+        });
+    }
+
+    /**
+     * GET /routes/weather-history - Get weather search history
+     */
+    async getWeatherHistory(req, res) {
+        const history = await routeService.getWeatherHistory(req.user.id);
+        res.json({
+            success: true,
+            data: history
         });
     }
 

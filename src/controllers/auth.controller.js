@@ -67,8 +67,38 @@ exports.refreshToken = asyncHandler(async (req, res) => {
     res.status(200).json(result);
 });
 
-// Giữ lại verifyOtp nếu cần
+/**
+ * Gửi OTP tới email
+ * POST /api/auth/send-otp
+ */
+exports.sendOtp = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    const result = await authService.sendOtp(email);
+
+    res.status(200).json(result);
+});
+
+/**
+ * Xác nhận OTP
+ * POST /api/auth/verify-otp
+ */
 exports.verifyOtp = asyncHandler(async (req, res) => {
-    const ok = await authService.verifyOtp(req.body);
-    res.json({ ok });
+    const { email, code } = req.body;
+    const ok = await authService.verifyOtp({ email, code });
+
+    res.status(200).json({
+        message: 'OTP verified successfully',
+        ok
+    });
+});
+
+/**
+ * Cập nhật mật khẩu mới theo email
+ * POST /api/auth/reset-password
+ */
+exports.resetPassword = asyncHandler(async (req, res) => {
+    const { email, newPassword } = req.body;
+    const result = await authService.resetPassword({ email, newPassword });
+
+    res.status(200).json(result);
 });

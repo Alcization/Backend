@@ -5,7 +5,10 @@ const { OAuth2Client } = require('google-auth-library');
 const { UserAccount, IndividualUser, BusinessUser } = require('../models/user.model');
 const RefreshToken = require('../models/refreshToken.model');
 const Role = require('../models/role.model');
+const Otp = require('../models/otp.model');
 const sequelize = require('../config/database');
+const createOTP = require('../helpers/createOTP');
+const sendMail = require('../helpers/sendMail');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -281,6 +284,120 @@ class AuthService {
         );
 
         return { accessToken: token };
+    }
+
+    /**
+     * Gửi mã OTP đến email, hiệu lực 5 phút
+     */
+    async sendOtp(email) {
+        if (!email) {
+            const err = new Error('Email is required');
+            err.status = 400;
+            throw err;
+        }
+
+        const normalizedEmail = String(email).trim().toLowerCase();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(normalizedEmail)) {
+            const err = new Error('Invalid email format');
+            err.status = 400;
+            throw err;
+        }
+
+        const code = createOTP(6);
+
+        // Mỗi email chỉ giữ 1 OTP mới nhất
+        await Otp.destroy({ where: { email: normalizedEmail } });
+        await Otp.create({
+            email: normalizedEmail,
+            code,
+            time: new Date()
+        });
+
+        await sendMail(
+            normalizedEmail,
+            'Ma OTP xac thuc',
+            `<p>Ma OTP cua ban la: <b>${code}</b></p><p>Ma co hieu luc trong 5 phut.</p>`
+        );
+
+        return { message: 'OTP sent successfully' };
+    }
+
+    /**
+     * Xác thực OTP còn hiệu lực trong 5 phút
+     */
+    async verifyOtp({ email, code }) {
+        if (!email || !code) {
+            const err = new Error('Email and code are required');
+            err.status = 400;
+            throw err;
+        }
+
+        const normalizedEmail = String(email).trim().toLowerCase();
+        const normalizedCode = String(code).trim();
+
+        const otpRecord = await Otp.findOne({
+            where: {
+                email: normalizedEmail,
+                code: normalizedCode
+            }
+        });
+
+        if (!otpRecord) {
+            const err = new Error('Invalid OTP');
+            err.status = 400;
+            throw err;
+        }
+
+        const createdTime = new Date(otpRecord.time).getTime();
+        const now = Date.now();
+        const isExpired = now - createdTime > 5 * 60 * 1000;
+
+        if (isExpired) {
+            await otpRecord.destroy();
+            const err = new Error('OTP expired');
+            err.status = 400;
+            throw err;
+        }
+
+        // Dùng một lần: xác thực thành công thì xóa
+        await otpRecord.destroy();
+        return true;
+    }
+
+    /**
+     * Cập nhật mật khẩu mới theo email
+     */
+    async resetPassword({ email, newPassword }) {
+        if (!email || !newPassword) {
+            const err = new Error('Email and newPassword are required');
+            err.status = 400;
+            throw err;
+        }
+
+        const normalizedEmail = String(email).trim().toLowerCase();
+        if (String(newPassword).length < 6) {
+            const err = new Error('newPassword must be at least 6 characters');
+            err.status = 400;
+            throw err;
+        }
+
+        const user = await UserAccount.findOne({ where: { email: normalizedEmail } });
+        if (!user) {
+            const err = new Error('User not found');
+            err.status = 404;
+            throw err;
+        }
+
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(String(newPassword), salt);
+
+        await user.update({ password_hash: hashedPassword });
+
+        // Thu hồi refresh token cũ để tránh tiếp tục dùng phiên cũ
+        await RefreshToken.destroy({ where: { user_id: user.user_id } });
+
+        return { message: 'Password updated successfully' };
     }
 
     /**
