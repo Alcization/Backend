@@ -112,11 +112,7 @@ class RouteService {
             order: [['route_id', 'DESC']]
         });
 
-        // Parse waypoints JSON
-        return routes.map(route => ({
-            ...route.toJSON(),
-            waypoints: route.waypoints ? JSON.parse(route.waypoints) : []
-        }));
+        return routes.map(route => this._formatSavedRoute(route));
     }
 
     /**
@@ -124,45 +120,230 @@ class RouteService {
      * Calculate route segments based on start, end, and waypoints
      */
     async createRoute(userId, data) {
+        if (!data || typeof data !== 'object') {
+            const error = new Error('Request body is required');
+            error.status = 400;
+            throw error;
+        }
+
+        const name = data.name && typeof data.name === 'string' ? data.name.trim() : '';
+        if (!name) {
+            const error = new Error('name is required');
+            error.status = 400;
+            throw error;
+        }
+
+        const start = this._normalizeInputPoint(data.start || data.start_point);
+        const end = this._normalizeInputPoint(data.end || data.end_point);
+
+        if (!start || !end) {
+            const error = new Error('start_point and end_point are required');
+            error.status = 400;
+            throw error;
+        }
+
+        const waypoints = this._normalizeInputWaypoints(data.waypoints);
+
+        let distance = data.distance;
+        if (distance !== undefined && distance !== null) {
+            distance = Number(distance);
+            if (!Number.isFinite(distance) || distance < 0) {
+                const error = new Error('distance must be a non-negative number');
+                error.status = 400;
+                throw error;
+            }
+        }
+
         const t = await sequelize.transaction();
         
         try {
             // Calculate distance if start and end are provided
-            let distance = data.distance;
-            if (!distance && data.start && data.end) {
-                distance = this._calculateDistance(data.start, data.end);
+            if ((distance === undefined || distance === null) && start && end) {
+                distance = this._calculateDistance(start, end);
             }
             
             // Create saved route
             const route = await SavedRoute.create({
                 user_id: userId,
-                name: data.name,
-                start_point: data.start ? sequelize.literal(`point(${data.start.lng}, ${data.start.lat})`) : null,
-                end_point: data.end ? sequelize.literal(`point(${data.end.lng}, ${data.end.lat})`) : null,
-                waypoints: data.waypoints ? JSON.stringify(data.waypoints) : null,
-                distance: distance
+                name,
+                start_point: sequelize.literal(`point(${start.lng}, ${start.lat})`),
+                end_point: sequelize.literal(`point(${end.lng}, ${end.lat})`),
+                waypoints: waypoints.length ? JSON.stringify(waypoints) : null,
+                distance: distance,
+                start_address: data.start_address || data.startAddress || null,
+                end_address: data.end_address || data.endAddress || null
             }, { transaction: t });
 
-            // Create route segments if points are provided
-            if (data.start && data.end) {
-                const points = [data.start, ...(data.waypoints || []), data.end];
-            
-                for (let i = 0; i < points.length - 1; i++) {
-                    const start = points[i];
-                    const end = points[i + 1];
-                    
-                    await RouteSegment.create({
-                        saved_route_id: route.route_id,
-                        start_point: sequelize.literal(`point(${start.lng}, ${start.lat})`),
-                        end_point: sequelize.literal(`point(${end.lng}, ${end.lat})`),
-                        coordinate: sequelize.literal(`path '[(${start.lng},${start.lat}),(${end.lng},${end.lat})]'`),
-                        order_in_route: i + 1
-                    }, { transaction: t });
-                }
-            }
+            await this._replaceRouteSegments(route.route_id, start, end, waypoints, t);
 
             await t.commit();
-            return route;
+            return this._formatSavedRoute(route);
+        } catch (error) {
+            await t.rollback();
+            throw error;
+        }
+    }
+
+    /**
+     * Update a saved route for a user
+     */
+    async updateRoute(routeId, userId, data) {
+        if (!data || typeof data !== 'object') {
+            const error = new Error('Request body is required');
+            error.status = 400;
+            throw error;
+        }
+
+        const route = await SavedRoute.findOne({
+            where: { route_id: routeId, user_id: userId }
+        });
+
+        if (!route) {
+            const error = new Error('Route not found');
+            error.status = 404;
+            throw error;
+        }
+
+        const hasStartInput = data.start !== undefined || data.start_point !== undefined;
+        const hasEndInput = data.end !== undefined || data.end_point !== undefined;
+        const hasWaypointsInput = data.waypoints !== undefined;
+
+        const updateData = {};
+
+        if (data.name !== undefined) {
+            const name = typeof data.name === 'string' ? data.name.trim() : '';
+            if (!name) {
+                const error = new Error('name must be a non-empty string');
+                error.status = 400;
+                throw error;
+            }
+            updateData.name = name;
+        }
+
+        if (data.start_address !== undefined || data.startAddress !== undefined) {
+            updateData.start_address = data.start_address !== undefined ? data.start_address : data.startAddress;
+        }
+
+        if (data.end_address !== undefined || data.endAddress !== undefined) {
+            updateData.end_address = data.end_address !== undefined ? data.end_address : data.endAddress;
+        }
+
+        if (data.distance !== undefined) {
+            const distance = Number(data.distance);
+            if (!Number.isFinite(distance) || distance < 0) {
+                const error = new Error('distance must be a non-negative number');
+                error.status = 400;
+                throw error;
+            }
+            updateData.distance = distance;
+        }
+
+        const currentStart = this._extractPoint(route.start_point);
+        const currentEnd = this._extractPoint(route.end_point);
+        const currentWaypoints = this._normalizeInputWaypoints(route.waypoints);
+
+        let nextStart = currentStart;
+        let nextEnd = currentEnd;
+        let nextWaypoints = currentWaypoints;
+
+        if (hasStartInput) {
+            nextStart = this._normalizeInputPoint(data.start !== undefined ? data.start : data.start_point);
+            if (!nextStart) {
+                const error = new Error('start_point must be a valid point');
+                error.status = 400;
+                throw error;
+            }
+            updateData.start_point = sequelize.literal(`point(${nextStart.lng}, ${nextStart.lat})`);
+        }
+
+        if (hasEndInput) {
+            nextEnd = this._normalizeInputPoint(data.end !== undefined ? data.end : data.end_point);
+            if (!nextEnd) {
+                const error = new Error('end_point must be a valid point');
+                error.status = 400;
+                throw error;
+            }
+            updateData.end_point = sequelize.literal(`point(${nextEnd.lng}, ${nextEnd.lat})`);
+        }
+
+        if (hasWaypointsInput) {
+            nextWaypoints = this._normalizeInputWaypoints(data.waypoints);
+            updateData.waypoints = nextWaypoints.length ? JSON.stringify(nextWaypoints) : null;
+        }
+
+        if (!nextStart || !nextEnd) {
+            const error = new Error('Route must include both start_point and end_point');
+            error.status = 400;
+            throw error;
+        }
+
+        const pointsChanged = hasStartInput || hasEndInput || hasWaypointsInput;
+
+        if (pointsChanged && data.distance === undefined) {
+            updateData.distance = this._calculateDistance(nextStart, nextEnd);
+        }
+
+        if (Object.keys(updateData).length === 0) {
+            const error = new Error('No fields provided for update');
+            error.status = 400;
+            throw error;
+        }
+
+        const t = await sequelize.transaction();
+
+        try {
+            await SavedRoute.update(updateData, {
+                where: { route_id: routeId, user_id: userId },
+                transaction: t
+            });
+
+            if (pointsChanged) {
+                await this._replaceRouteSegments(routeId, nextStart, nextEnd, nextWaypoints, t);
+            }
+
+            const updatedRoute = await SavedRoute.findOne({
+                where: { route_id: routeId, user_id: userId },
+                transaction: t
+            });
+
+            await t.commit();
+            return this._formatSavedRoute(updatedRoute);
+        } catch (error) {
+            await t.rollback();
+            throw error;
+        }
+    }
+
+    /**
+     * Delete a saved route for a user
+     */
+    async deleteRoute(routeId, userId) {
+        const t = await sequelize.transaction();
+
+        try {
+            const route = await SavedRoute.findOne({
+                where: { route_id: routeId, user_id: userId },
+                transaction: t
+            });
+
+            if (!route) {
+                const error = new Error('Route not found');
+                error.status = 404;
+                throw error;
+            }
+
+            await RouteSegment.destroy({
+                where: { saved_route_id: routeId },
+                transaction: t
+            });
+
+            await SavedRoute.destroy({
+                where: { route_id: routeId, user_id: userId },
+                transaction: t
+            });
+
+            await t.commit();
+            return true;
         } catch (error) {
             await t.rollback();
             throw error;
@@ -279,7 +460,11 @@ class RouteService {
             where: { route_id: routeId, user_id: userId }
         });
 
-        if (!route) throw new Error('Route not found');
+        if (!route) {
+            const error = new Error('Route not found');
+            error.status = 404;
+            throw error;
+        }
 
         // Get route segments
         const segments = await RouteSegment.findAll({
@@ -288,8 +473,7 @@ class RouteService {
         });
 
         return {
-            ...route.toJSON(),
-            waypoints: route.waypoints ? JSON.parse(route.waypoints) : [],
+            ...this._formatSavedRoute(route),
             segments: segments
         };
     }
@@ -432,6 +616,146 @@ class RouteService {
         if (avgPrecip < 2.5) return 'Light Rain';
         if (avgPrecip < 10) return 'Moderate Rain';
         return 'Heavy Rain';
+    }
+
+    _formatSavedRoute(route) {
+        const raw = route.toJSON ? route.toJSON() : route;
+        const startPoint = this._extractPoint(raw.start_point);
+        const endPoint = this._extractPoint(raw.end_point);
+
+        return {
+            ...raw,
+            start_point: startPoint,
+            end_point: endPoint,
+            start: startPoint,
+            end: endPoint,
+            waypoints: this._parseWaypoints(raw.waypoints)
+        };
+    }
+
+    _parseWaypoints(waypoints) {
+        if (!waypoints) {
+            return [];
+        }
+
+        if (Array.isArray(waypoints)) {
+            return waypoints;
+        }
+
+        if (typeof waypoints === 'string') {
+            try {
+                const parsed = JSON.parse(waypoints);
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (_error) {
+                return [];
+            }
+        }
+
+        return [];
+    }
+
+    _extractPoint(pointValue) {
+        if (!pointValue) {
+            return null;
+        }
+
+        if (pointValue.type === 'Point' && Array.isArray(pointValue.coordinates)) {
+            return {
+                lng: Number(pointValue.coordinates[0]),
+                lat: Number(pointValue.coordinates[1])
+            };
+        }
+
+        if (pointValue.x !== undefined && pointValue.y !== undefined) {
+            return {
+                lng: Number(pointValue.x),
+                lat: Number(pointValue.y)
+            };
+        }
+
+        if (Array.isArray(pointValue) && pointValue.length >= 2) {
+            return {
+                lng: Number(pointValue[0]),
+                lat: Number(pointValue[1])
+            };
+        }
+
+        if (typeof pointValue === 'string') {
+            const normalized = pointValue.trim();
+            const match = normalized.match(/^\(?\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\)?$/);
+
+            if (match) {
+                return {
+                    lng: Number(match[1]),
+                    lat: Number(match[2])
+                };
+            }
+
+            try {
+                const parsed = JSON.parse(normalized);
+                return this._extractPoint(parsed);
+            } catch (_error) {
+                return null;
+            }
+        }
+
+        return null;
+    }
+
+    _normalizeInputPoint(point) {
+        if (!point) {
+            return null;
+        }
+
+        if (typeof point === 'object' && !Array.isArray(point)) {
+            const lng = point.lng !== undefined ? point.lng : point.longitude;
+            const lat = point.lat !== undefined ? point.lat : point.latitude;
+
+            if (lng !== undefined && lat !== undefined) {
+                const normalizedLng = Number(lng);
+                const normalizedLat = Number(lat);
+
+                if (Number.isFinite(normalizedLng) && Number.isFinite(normalizedLat)) {
+                    return { lng: normalizedLng, lat: normalizedLat };
+                }
+            }
+        }
+
+        return this._extractPoint(point);
+    }
+
+    _normalizeInputWaypoints(waypoints) {
+        if (waypoints === undefined || waypoints === null) {
+            return [];
+        }
+
+        const parsedWaypoints = this._parseWaypoints(waypoints);
+
+        return parsedWaypoints
+            .map(point => this._normalizeInputPoint(point))
+            .filter(Boolean);
+    }
+
+    async _replaceRouteSegments(routeId, start, end, waypoints, transaction) {
+        await RouteSegment.destroy({
+            where: { saved_route_id: routeId },
+            transaction
+        });
+
+        const points = [start, ...waypoints, end];
+
+        for (let i = 0; i < points.length - 1; i++) {
+            const from = points[i];
+            const to = points[i + 1];
+
+            await RouteSegment.create({
+                saved_route_id: routeId,
+                start_point: sequelize.literal(`point(${from.lng}, ${from.lat})`),
+                end_point: sequelize.literal(`point(${to.lng}, ${to.lat})`),
+                coordinate: sequelize.literal(`path '[(${from.lng},${from.lat}),(${to.lng},${to.lat})]'`),
+                order_in_route: i + 1
+            }, { transaction });
+        }
     }
 }
 

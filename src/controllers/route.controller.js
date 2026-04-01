@@ -68,6 +68,28 @@ class RouteController {
     }
 
     /**
+     * PUT /routes/favorites/:id - Update a saved favorite route
+     */
+    async updateRoute(req, res) {
+        const route = await routeService.updateRoute(req.params.id, req.user.id, req.body);
+        res.json({
+            success: true,
+            data: route
+        });
+    }
+
+    /**
+     * DELETE /routes/favorites/:id - Delete a saved favorite route
+     */
+    async deleteRoute(req, res) {
+        await routeService.deleteRoute(req.params.id, req.user.id);
+        res.json({
+            success: true,
+            message: 'Route deleted successfully'
+        });
+    }
+
+    /**
      * POST /routes/history - Save route search history
      */
     async createSearchHistory(req, res) {

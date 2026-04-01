@@ -13,6 +13,8 @@ Base URL: `http://localhost:3000`
 - [Map &amp; Real-time Data](#map--real-time-data)
 - [Business Features](#business-features)
 - [Admin &amp; Response Scenarios](#admin--response-scenarios)
+- [Alert Events Management](#alert-events-management)
+- [User Response Scenarios](#user-response-scenarios)
 - [Error Handling](#error-handling)
 
 ---
@@ -586,6 +588,8 @@ Get all saved routes for the authenticated user.
 
 **Endpoint:** `GET /api/routes`
 
+**Alias Endpoint:** `GET /api/routes/favorites`
+
 **Authentication:** Required
 
 **Response:** `200 OK`
@@ -597,13 +601,22 @@ Get all saved routes for the authenticated user.
     {
       "route_id": 1,
       "user_id": 1,
-      "name": "Daily Commute",
+      "name": "Đường đi làm",
+      "start_point": {
+        "lat": 10.7769,
+        "lng": 106.7009
+      },
+      "end_point": {
+        "lat": 10.805,
+        "lng": 106.72
+      },
+      "start_address": "123 Lê Lợi, Quận 1",
+      "end_address": "456 Điện Biên Phủ, Bình Thạnh",
       "distance": 12.5,
       "waypoints": [
         {"lat": 10.7850, "lng": 106.7100},
         {"lat": 10.7950, "lng": 106.7150}
-      ],
-      "created_at": "2025-11-27T09:00:00.000Z"
+      ]
     }
   ]
 }
@@ -617,21 +630,25 @@ Create and save a new route with start, end, and optional waypoints.
 
 **Endpoint:** `POST /api/routes`
 
+**Alias Endpoint:** `POST /api/routes/favorites`
+
 **Authentication:** Required
 
 **Request Body:**
 
 ```json
 {
-  "name": "Home to Office",
-  "start": {
+  "name": "Đường đi làm",
+  "start_point": {
     "lat": 10.7769,
     "lng": 106.7009
   },
-  "end": {
+  "end_point": {
     "lat": 10.8050,
     "lng": 106.7200
   },
+  "start_address": "123 Lê Lợi, Quận 1",
+  "end_address": "456 Điện Biên Phủ, Bình Thạnh",
   "waypoints": [
     {"lat": 10.7850, "lng": 106.7100}
   ],
@@ -647,9 +664,21 @@ Create and save a new route with start, end, and optional waypoints.
   "data": {
     "route_id": 2,
     "user_id": 1,
-    "name": "Home to Office",
-    "distance": 12.5,
-    "created_at": "2025-11-27T13:00:00.000Z"
+    "name": "Đường đi làm",
+    "start_point": {
+      "lat": 10.7769,
+      "lng": 106.7009
+    },
+    "end_point": {
+      "lat": 10.805,
+      "lng": 106.72
+    },
+    "start_address": "123 Lê Lợi, Quận 1",
+    "end_address": "456 Điện Biên Phủ, Bình Thạnh",
+    "waypoints": [
+      {"lat": 10.785, "lng": 106.71}
+    ],
+    "distance": 12.5
   }
 }
 ```
@@ -661,6 +690,8 @@ Create and save a new route with start, end, and optional waypoints.
 Get detailed information about a specific route including segments.
 
 **Endpoint:** `GET /api/routes/:id`
+
+**Alias Endpoint:** `GET /api/routes/favorites/:id`
 
 **Authentication:** Required
 
@@ -691,6 +722,84 @@ Get detailed information about a specific route including segments.
       }
     ]
   }
+}
+```
+
+---
+
+### Update Favorite Route
+
+Update an existing favorite route by id.
+
+**Endpoint:** `PUT /api/routes/favorites/:id`
+
+**Authentication:** Required
+
+**Request Body (all fields optional, but at least one is required):**
+
+```json
+{
+  "name": "Đường đi làm mới",
+  "start_point": {
+    "lat": 10.7769,
+    "lng": 106.7009
+  },
+  "end_point": {
+    "lat": 10.807,
+    "lng": 106.723
+  },
+  "start_address": "123 Lê Lợi, Quận 1",
+  "end_address": "789 Nguyễn Hữu Cảnh, Bình Thạnh",
+  "waypoints": [
+    {"lat": 10.79, "lng": 106.712}
+  ],
+  "distance": 13.2
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "route_id": 2,
+    "user_id": 1,
+    "name": "Đường đi làm mới",
+    "start_point": {
+      "lat": 10.7769,
+      "lng": 106.7009
+    },
+    "end_point": {
+      "lat": 10.807,
+      "lng": 106.723
+    },
+    "start_address": "123 Lê Lợi, Quận 1",
+    "end_address": "789 Nguyễn Hữu Cảnh, Bình Thạnh",
+    "waypoints": [
+      {"lat": 10.79, "lng": 106.712}
+    ],
+    "distance": 13.2
+  }
+}
+```
+
+---
+
+### Delete Favorite Route
+
+Delete a favorite route by id.
+
+**Endpoint:** `DELETE /api/routes/favorites/:id`
+
+**Authentication:** Required
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Route deleted successfully"
 }
 ```
 
@@ -1847,6 +1956,675 @@ Authorization: Bearer <access_token>
 
 ---
 
+## User Response Scenarios
+
+**Authentication Required:** All endpoints require JWT token.
+
+### Get Response Scenarios
+
+Get all response scenarios of the authenticated user.
+
+**Endpoint:** `GET /api/response-scenarios`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**Query Parameters:**
+
+- `name` (optional): Search by scenario name (contains, case-insensitive)
+- `applicable_event_type` (optional): Search by event type description (contains, case-insensitive)
+
+**Example:**
+
+```
+GET /api/response-scenarios?name=cao&applicable_event_type=xe
+```
+
+**Response:** `200 OK`
+
+```json
+{
+    "success": true,
+    "data": [
+        {
+            "scenario_id": 10,
+            "user_id": 18,
+            "name": "Ứng phó hỏa hoạn nhà cao tầng",
+            "applicable_event_type": "Huy động xe thang, ngắt điện khu vực",
+            "steps": [
+                {
+                    "id": 4,
+                    "scenario_id": 10,
+                    "step": 1,
+                    "content": "Xác định vị trí cháy và số người kẹt",
+                    "priority": "high"
+                },
+                {
+                    "id": 5,
+                    "scenario_id": 10,
+                    "step": 2,
+                    "content": "Ngắt điện và hệ thống gas",
+                    "priority": "high"
+                },
+                {
+                    "id": 6,
+                    "scenario_id": 10,
+                    "step": 3,
+                    "content": "Triển khai xe thang cứu hộ",
+                    "priority": "high"
+                },
+                {
+                    "id": 7,
+                    "scenario_id": 10,
+                    "step": 4,
+                    "content": "Sơ cấp cứu người bị nạn",
+                    "priority": "medium"
+                }
+            ]
+        },
+        {
+            "scenario_id": 9,
+            "user_id": 18,
+            "name": "Kịch bản ngập trên 0.5m",
+            "applicable_event_type": "Kích hoạt trạm bơm, phong tỏa khu vực trọng yếu",
+            "steps": [
+                {
+                    "id": 1,
+                    "scenario_id": 9,
+                    "step": 1,
+                    "content": "Thông báo người dân di chuyển",
+                    "priority": "high"
+                },
+                {
+                    "id": 2,
+                    "scenario_id": 9,
+                    "step": 2,
+                    "content": "Kích hoạt trạm bơm dự phòng",
+                    "priority": "high"
+                },
+                {
+                    "id": 3,
+                    "scenario_id": 9,
+                    "step": 3,
+                    "content": "Cử đội phản ứng nhanh hỗ trợ",
+                    "priority": "medium"
+                }
+            ]
+        }
+    ]
+}
+```
+
+---
+
+### Get Single Response Scenario
+
+Get one response scenario by id (must belong to authenticated user).
+
+**Endpoint:** `GET /api/response-scenarios/:id`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+            "scenario_id": 9,
+            "user_id": 18,
+            "name": "Kịch bản ngập trên 0.5m",
+            "applicable_event_type": "Kích hoạt trạm bơm, phong tỏa khu vực trọng yếu",
+            "steps": [
+                {
+                    "id": 1,
+                    "scenario_id": 9,
+                    "step": 1,
+                    "content": "Thông báo người dân di chuyển",
+                    "priority": "high"
+                },
+                {
+                    "id": 2,
+                    "scenario_id": 9,
+                    "step": 2,
+                    "content": "Kích hoạt trạm bơm dự phòng",
+                    "priority": "high"
+                },
+                {
+                    "id": 3,
+                    "scenario_id": 9,
+                    "step": 3,
+                    "content": "Cử đội phản ứng nhanh hỗ trợ",
+                    "priority": "medium"
+                }
+            ]
+        }
+    ]
+  }
+}
+```
+
+---
+
+### Create Response Scenario
+
+Create a response scenario and its steps.
+
+**Endpoint:** `POST /api/response-scenarios`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Request Body:**
+
+```json
+{
+  "name": "Ứng phó hỏa hoạn nhà cao tầng",
+  "applicable_event_type": "Huy động xe thang, ngắt điện khu vực",
+  "steps": [
+    {
+      "step": 1,
+      "content": "Xác định vị trí cháy và số người kẹt",
+      "priority": "high"
+    },
+    {
+      "step": 2,
+      "content": "Ngắt điện và hệ thống gas",
+      "priority": "high"
+    },
+    {
+      "step": 3,
+      "content": "Triển khai xe thang cứu hộ",
+      "priority": "high"
+    },
+    {
+      "step": 4,
+      "content": "Sơ cấp cứu người bị nạn",
+      "priority": "medium"
+    }
+  ]
+}
+```
+
+**Validation Rules:**
+
+- `name` (required): Non-empty string
+- `applicable_event_type` (required): Non-empty string
+- `steps` (required): Array with at least 1 item
+- `steps[].step` (required): Positive integer and unique inside the same scenario
+- `steps[].content` (required): Non-empty string
+- `steps[].priority` (required): `high`, `medium`, `low` (also accepts `cao`, `trung_binh`, `trung bình`, `thấp` and will normalize)
+
+**Response:** `201 Created`
+
+```json
+{
+  "success": true,
+  "data": {
+    "scenario_id": 2,
+    "user_id": 5,
+    "name": "Traffic Accident Response",
+    "applicable_event_type": "Multi-vehicle collision during rush hour",
+    "steps": [
+      {
+        "id": 20,
+        "scenario_id": 2,
+        "step": 1,
+        "content": "Call emergency hotline and report location",
+        "priority": "high"
+      },
+      {
+        "id": 21,
+        "scenario_id": 2,
+        "step": 2,
+        "content": "Set warning triangle 50 meters behind vehicle",
+        "priority": "medium"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### Update Response Scenario
+
+Update scenario information and/or replace all steps.
+
+**Endpoint:** `PUT /api/response-scenarios/:id`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+Content-Type: application/json
+```
+
+**Request Body (all fields optional, at least one is required):**
+
+```json
+{
+  "name": "Traffic Accident Response - Updated",
+  "applicable_event_type": "Collision in heavy rain",
+  "steps": [
+    {
+      "step": 1,
+      "content": "Contact emergency services and share exact coordinates",
+      "priority": "high"
+    },
+    {
+      "step": 2,
+      "content": "Direct traffic away from accident lane",
+      "priority": "low"
+    }
+  ]
+}
+```
+
+**Notes:**
+
+- If `steps` is provided, old steps are deleted and replaced by the new list.
+- If no valid fields are provided, API returns `400 Bad Request`.
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "data": {
+    "scenario_id": 2,
+    "user_id": 5,
+    "name": "Traffic Accident Response - Updated",
+    "applicable_event_type": "Collision in heavy rain",
+    "steps": [
+      {
+        "id": 30,
+        "scenario_id": 2,
+        "step": 1,
+        "content": "Contact emergency services and share exact coordinates",
+        "priority": "high"
+      },
+      {
+        "id": 31,
+        "scenario_id": 2,
+        "step": 2,
+        "content": "Direct traffic away from accident lane",
+        "priority": "low"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### Delete Response Scenario
+
+Delete one response scenario and all of its steps.
+
+**Endpoint:** `DELETE /api/response-scenarios/:id`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "success": true,
+  "message": "Scenario deleted successfully"
+}
+```
+
+---
+
+### Get Admin Dashboard
+
+Get system-wide dashboard statistics for admin users.
+
+**Endpoint:** `GET /admin/dashboard`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "system_health": {
+    "database": "healthy",
+    "total_users": 150,
+    "active_users_7d": 45,
+    "alerts_24h": 12
+  },
+  "users_by_role": [
+    {
+      "role": "user",
+      "count": 120
+    },
+    {
+      "role": "admin",
+      "count": 5
+    }
+  ],
+  "admin_areas": 10,
+  "response_scenarios": 25,
+  "scenarios_by_type": [
+    {
+      "applicable_event_type": "Flood",
+      "count": 8
+    },
+    {
+      "applicable_event_type": "Traffic",
+      "count": 10
+    }
+  ],
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+---
+
+## Alert Events Management
+
+**Authentication Required:** All alert endpoints require JWT token and `admin` or `admin_officer` role.
+
+### Get All Alert Events
+
+Get all alert events with optional filtering. Officers can only see alerts from their areas.
+
+**Endpoint:** `GET /admin/alerts`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**Query Parameters:**
+
+- `type` (optional): Filter by alert type (Flood, Rain, Storm, Traffic, Ngập, Mưa, Bão, Giao thông)
+- `level` (optional): Filter by severity level (High, Medium, Low, Cao, Trung bình, Thấp)
+- `area_id` (optional): Filter by specific admin area
+- `start_date` (optional): Filter alerts from this date (ISO format)
+- `end_date` (optional): Filter alerts until this date (ISO format)
+- `limit` (optional): Maximum number of results (default: 100)
+- `offset` (optional): Pagination offset (default: 0)
+
+**Example:**
+
+```
+GET /admin/alerts?type=Flood&level=High&area_id=1&start_date=2024-01-01&limit=50
+```
+
+**Response:** `200 OK`
+
+```json
+[
+  {
+    "alert_event_id": 1,
+    "name": "Heavy Flooding in District 1",
+    "type": "Flood",
+    "description": "Water level rising rapidly in downtown area",
+    "issue_at": "2024-01-15T09:30:00Z",
+    "area_id": 1,
+    "area_name": "District 1 - Central Area",
+    "scenario_id": null,
+    "level": "High",
+    "user_id": 5,
+    "UserAccount": {
+      "user_id": 5,
+      "username": "admin_officer_1",
+      "email": "officer1@admin.com"
+    },
+    "ResponseScenario": null
+  },
+  {
+    "alert_event_id": 2,
+    "name": "Traffic Jam on Highway 1",
+    "type": "Traffic",
+    "description": "Heavy congestion due to accident",
+    "issue_at": "2024-01-15T10:15:00Z",
+    "area_id": 2,
+    "area_name": "District 2 - Suburban Area",
+    "scenario_id": 5,
+    "level": "Medium",
+    "user_id": 5,
+    "UserAccount": {
+      "user_id": 5,
+      "username": "admin_officer_1",
+      "email": "officer1@admin.com"
+    },
+    "ResponseScenario": {
+      "scenario_id": 5,
+      "name": "Traffic Accident Response",
+      "applicable_event_type": "Traffic"
+    }
+  }
+]
+```
+
+---
+
+### Get Single Alert Event
+
+Get detailed information about a specific alert event.
+
+**Endpoint:** `GET /admin/alerts/:id`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "alert_event_id": 1,
+  "name": "Heavy Flooding in District 1",
+  "type": "Flood",
+  "description": "Water level rising rapidly in downtown area",
+  "issue_at": "2024-01-15T09:30:00Z",
+  "area_id": 1,
+  "scenario_id": null,
+  "level": "High",
+  "user_id": 5,
+  "UserAccount": {
+    "user_id": 5,
+    "username": "admin_officer_1",
+    "email": "officer1@admin.com"
+  },
+  "AdminArea": {
+    "area_id": 1,
+    "name": "District 1 - Central Area",
+    "address": "Downtown District"
+  },
+  "ResponseScenario": null
+}
+```
+
+---
+
+### Create Alert Event
+
+Create a new alert event. Only authenticated admins and admin officers can create alerts.
+
+**Endpoint:** `POST /admin/alerts`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**Request Body:**
+
+```json
+{
+  "name": "Heavy Flooding in District 1",
+  "type": "Flood",
+  "description": "Water level rising rapidly in downtown area",
+  "level": "High",
+  "area_id": 1,
+  "scenario_id": null,
+  "issue_at": "2024-01-15T09:30:00Z"
+}
+```
+
+**Field Descriptions:**
+
+- `name` (required): Name/title of the alert
+- `type` (required): Type of alert: `Flood`, `Rain`, `Storm`, `Traffic`, `Ngập`, `Mưa`, `Bão`, or `Giao thông`
+- `description` (optional): Detailed description of the alert
+- `level` (required): Severity level: `High`, `Medium`, `Low`, `Cao`, `Trung bình`, or `Thấp`
+- `area_id` (required): ID of the affected area (must exist)
+- `scenario_id` (optional): ID of associated response scenario (null means unprocessed)
+- `issue_at` (optional): Event timestamp (defaults to current time if not provided)
+
+**Response:** `201 Created`
+
+```json
+{
+  "alert_event_id": 1,
+  "name": "Heavy Flooding in District 1",
+  "type": "Flood",
+  "description": "Water level rising rapidly in downtown area",
+  "issue_at": "2024-01-15T09:30:00Z",
+  "area_id": 1,
+  "area_name": "District 1 - Central Area",
+  "scenario_id": null,
+  "level": "High",
+  "user_id": 5,
+  "UserAccount": {
+    "user_id": 5,
+    "username": "admin_officer_1",
+    "email": "officer1@admin.com"
+  },
+  "ResponseScenario": null
+}
+```
+
+**Error Responses:**
+
+- `400 Bad Request`: Invalid data or missing required fields
+- `404 Not Found`: Referenced area or scenario not found
+- `401 Unauthorized`: Invalid or missing JWT token
+
+---
+
+### Update Alert Event
+
+Update an existing alert event. Only the creator or an admin can update an alert.
+
+**Endpoint:** `PUT /admin/alerts/:id`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**Request Body (all fields optional):**
+
+```json
+{
+  "name": "Updated Alert Name",
+  "type": "Storm",
+  "description": "Updated description",
+  "level": "Medium",
+  "scenario_id": 5
+}
+```
+
+**Field Descriptions:**
+
+- `name` (optional): Updated alert name
+- `type` (optional): Updated alert type
+- `description` (optional): Updated description
+- `level` (optional): Updated severity level
+- `scenario_id` (optional): Assign response scenario (null to mark as unprocessed)
+
+**Response:** `200 OK`
+
+```json
+{
+  "alert_event_id": 1,
+  "name": "Updated Alert Name",
+  "type": "Storm",
+  "description": "Updated description",
+  "issue_at": "2024-01-15T09:30:00Z",
+  "area_id": 1,
+  "area_name": "District 1 - Central Area",
+  "scenario_id": 5,
+  "level": "Medium",
+  "user_id": 5,
+  "UserAccount": {
+    "user_id": 5,
+    "username": "admin_officer_1",
+    "email": "officer1@admin.com"
+  },
+  "ResponseScenario": {
+    "scenario_id": 5,
+    "name": "Traffic Accident Response",
+    "applicable_event_type": "Traffic"
+  }
+}
+```
+
+**Error Responses:**
+
+- `400 Bad Request`: Invalid data
+- `401 Unauthorized`: User is not the creator or an admin
+- `404 Not Found`: Alert event or referenced scenario not found
+
+---
+
+### Delete Alert Event
+
+Delete an alert event. Only the creator or an admin can delete an alert.
+
+**Endpoint:** `DELETE /admin/alerts/:id`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "message": "Alert event deleted successfully"
+}
+```
+
+**Error Responses:**
+
+- `401 Unauthorized`: User is not the creator or an admin
+- `404 Not Found`: Alert event not found
+
+---
+
 ## Error Handling
 
 ### Standard Error Response
@@ -1915,21 +2693,244 @@ curl http://localhost:3000/api/business/reports/weekly \
 
 ### Admin Endpoints
 
-**Get Areas:**
+#### Area Management (CRUD)
 
+**Get All Areas:**
+
+Returns all admin areas. Officers see only their own areas, super admins see all.
+
+**Endpoint:** `GET /api/admin/areas`
+
+**Headers:**
+```
+Authorization: Bearer YOUR_ADMIN_TOKEN
+```
+
+**Response:** `200 OK`
+```json
+[
+  {
+    "area_id": 1,
+    "officer_id": 1,
+    "name": "Quận 5",
+    "area_type": "Quận",
+    "address": "Quận 5, TP. Hồ Chí Minh",
+    "boundary_polygon": null,
+    "management_area": {
+      "center": {
+        "lat": 10.7770,
+        "lng": 106.6765
+      },
+      "radius_km": 5.5
+    },
+    "hot_points": 0,
+    "AdministrativeOfficer": {
+      "officer_id": 1,
+      "user_id": 5,
+      "department": "Emergency Management"
+    }
+  }
+]
+```
+
+**cURL Example:**
 ```bash
 curl http://localhost:3000/api/admin/areas \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
 ```
 
+---
+
+**Get Single Area:**
+
+Retrieve details of a specific admin area.
+
+**Endpoint:** `GET /api/admin/areas/:id`
+
+**Parameters:**
+- `id` (path): Area ID
+
+**Response:** `200 OK`
+```json
+{
+  "area_id": 1,
+  "officer_id": 1,
+  "name": "Quận 5",
+  "area_type": "Quận",
+  "address": "Quận 5, TP. Hồ Chí Minh",
+  "management_area": {
+    "center": {
+      "lat": 10.7770,
+      "lng": 106.6765
+    },
+    "radius_km": 5.5
+  },
+  "hot_points": 0
+}
+```
+
+**cURL Example:**
+```bash
+curl http://localhost:3000/api/admin/areas/1 \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+---
+
 **Create Area:**
 
+Create a new admin area with full details.
+
+**Endpoint:** `POST /api/admin/areas`
+
+**Request Body:**
+```json
+{
+  "name": "Phường 1, Quận 1",
+  "area_type": "Phường",
+  "address": "Phường 1, Quận 1, TP. Hồ Chí Minh",
+  "management_area": {
+    "center": {
+      "lat": 10.7800,
+      "lng": 106.7000
+    },
+    "radius_km": 3.2
+  }
+}
+```
+
+**Field Descriptions:**
+- `name` (required): Area name
+- `area_type` (required): Type of area - "Phường" or "Quận"
+- `address` (required): Text address for the area
+- `management_area` (required): Geographic circle for the managed area
+  - `center` (required): Central coordinates
+    - `lat` (required): Latitude
+    - `lng` (required): Longitude
+  - `radius_km` (required): Radius in kilometers (must be > 0)
+
+**Response:** `201 Created`
+```json
+{
+  "area_id": 5,
+  "officer_id": 1,
+  "name": "Phường 1, Quận 1",
+  "area_type": "Phường",
+  "address": "Phường 1, Quận 1, TP. Hồ Chí Minh",
+  "management_area": {
+    "center": {
+      "lat": 10.7800,
+      "lng": 106.7000
+    },
+    "radius_km": 3.2
+  },
+  "hot_points": 0
+}
+```
+
+**cURL Example:**
 ```bash
 curl -X POST http://localhost:3000/api/admin/areas \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"District 5","area_type":"urban"}'
+  -d '{
+    "name": "Phường 1, Quận 1",
+    "area_type": "Phường",
+    "address": "Phường 1, Quận 1, TP. Hồ Chí Minh",
+    "management_area": {
+      "center": {"lat": 10.7800, "lng": 106.7000},
+      "radius_km": 3.2
+    }
+  }'
 ```
+
+---
+
+**Update Area:**
+
+Update an existing admin area.
+
+**Endpoint:** `PUT /api/admin/areas/:id`
+
+**Parameters:**
+- `id` (path): Area ID
+
+**Request Body (all fields optional):**
+```json
+{
+  "name": "Phường 2, Quận 1",
+  "area_type": "Phường",
+  "address": "Phường 2, Quận 1, TP. Hồ Chí Minh",
+  "management_area": {
+    "center": {
+      "lat": 10.7850,
+      "lng": 106.7050
+    },
+    "radius_km": 3.5
+  }
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "area_id": 5,
+  "officer_id": 1,
+  "name": "Phường 2, Quận 1",
+  "area_type": "Phường",
+  "address": "Phường 2, Quận 1, TP. Hồ Chí Minh",
+  "management_area": {
+    "center": {
+      "lat": 10.7850,
+      "lng": 106.7050
+    },
+    "radius_km": 3.5
+  },
+  "hot_points": 0
+}
+```
+
+**cURL Example:**
+```bash
+curl -X PUT http://localhost:3000/api/admin/areas/5 \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Phường 2, Quận 1",
+    "management_area": {
+      "center": {"lat": 10.7850, "lng": 106.7050},
+      "radius_km": 3.5
+    }
+  }'
+```
+
+---
+
+**Delete Area:**
+
+Delete an admin area.
+
+**Endpoint:** `DELETE /api/admin/areas/:id`
+
+**Parameters:**
+- `id` (path): Area ID
+
+**Response:** `200 OK`
+```json
+{
+  "message": "Area deleted successfully"
+}
+```
+
+**cURL Example:**
+```bash
+curl -X DELETE http://localhost:3000/api/admin/areas/5 \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+---
+
+#### Response Scenario Management
 
 **Get Scenarios:**
 
@@ -2106,10 +3107,33 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 
 ### Admin Tables
 
-- `administrative_officer` - Admin officers
-- `admin_area` - Managed geographical areas
-- `response_scenario` - Emergency response plans
-- `checklist_item` - Action items in scenarios
+**administrative_officer** - Administrative officers managing areas
+- `officer_id` (INTEGER, PK, auto-increment)
+- `user_id` (INTEGER, FK → user_account)
+- `department` (STRING)
+
+**admin_area** - Geographical areas managed by officers
+- `area_id` (INTEGER, PK, auto-increment)
+- `officer_id` (INTEGER, FK → administrative_officer)
+- `name` (STRING) - Area name
+- `area_type` (STRING) - "Phường" or "Quận"
+- `address` (TEXT) - Text address entered by user
+- `management_area` (JSON) - Circle geometry: `{center: {lat, lng}, radius_km}`
+- `hot_points` (INTEGER) - Number of hot spots/incidents in the area (default: 0)
+- `boundary_polygon` (TEXT) - Legacy GeoJSON/Polygon field
+
+**response_scenario** - Emergency response plans
+- `scenario_id` (INTEGER, PK, auto-increment)
+- `area_id` (INTEGER, FK → admin_area)
+- `name` (STRING)
+- `applicable_event_type` (STRING) - Flood, Traffic Jam, Accident, etc.
+
+**checklist_item** - Action items in scenarios
+- `item_id` (INTEGER, PK, auto-increment)
+- `scenario_id` (INTEGER, FK → response_scenario)
+- `name` (STRING)
+- `description` (TEXT)
+- `item_order` (INTEGER)
 
 ---
 

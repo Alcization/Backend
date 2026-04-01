@@ -5,10 +5,14 @@ const { UserAccount } = require('./user.model'); // Link tới user
 // Saved Route
 const SavedRoute = sequelize.define('SavedRoute', {
     route_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    user_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'user_account', key: 'user_id' } },
     name: { type: DataTypes.STRING },
     start_point: { type: DataTypes.GEOMETRY('POINT') }, // Yêu cầu PostGIS hoặc xử lý dạng String
     end_point: { type: DataTypes.GEOMETRY('POINT') },
-    waypoints: { type: DataTypes.TEXT } // Lưu JSON string tọa độ
+    waypoints: { type: DataTypes.TEXT }, // Lưu JSON string tọa độ
+    distance: { type: DataTypes.DOUBLE },
+    start_address: { type: DataTypes.TEXT },
+    end_address: { type: DataTypes.TEXT }
 }, { tableName: 'saved_route', timestamps: false });
 
 // Risk Assessment

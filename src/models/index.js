@@ -9,6 +9,7 @@ const mapModels = require('./map.model');
 const businessModels = require('./business.model');
 const adminModels = require('./admin.model');
 const routeModels = require('./route.model');
+const scenarioModels = require('./scenario.model');
 const Otp = require('./otp.model');
 
 // Optionally expose models and sequelize instance
@@ -22,5 +23,6 @@ module.exports = {
   ...businessModels,
   ...adminModels,
   ...routeModels,
+  ...scenarioModels,
   Otp
 };

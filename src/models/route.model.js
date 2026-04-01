@@ -21,7 +21,9 @@ const SavedRoute = sequelize.define('SavedRoute', {
     start_point: { type: DataTypes.GEOMETRY('POINT') },
     end_point: { type: DataTypes.GEOMETRY('POINT') },
     waypoints: { type: DataTypes.TEXT }, // JSON string of waypoints
-    distance: { type: DataTypes.FLOAT }
+    distance: { type: DataTypes.DOUBLE },
+    start_address: { type: DataTypes.TEXT },
+    end_address: { type: DataTypes.TEXT }
 }, { tableName: 'saved_route', timestamps: false });
 
 // History Trip - user's route search history
