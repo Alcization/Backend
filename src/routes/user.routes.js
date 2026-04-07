@@ -33,4 +33,8 @@ router.get('/notifications', authJwt.verifyToken, userCtrl.getNotifications);
 router.get('/notification', authJwt.verifyToken, userCtrl.getNotifications); // Alias for singular form
 router.put('/notifications/:id/read', authJwt.verifyToken, userCtrl.markNotificationRead);
 
+// Report schedule routes - yêu cầu authentication
+router.get('/me/report-schedules', authJwt.verifyToken, userCtrl.getReportSchedules);
+router.post('/me/report-schedules', authJwt.verifyToken, userCtrl.saveReportSchedule);
+
 module.exports = router;

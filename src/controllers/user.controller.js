@@ -50,6 +50,20 @@ exports.markNotificationRead = asyncHandler(async (req, res) => {
     res.json(notification);
 });
 
+// GET /users/me/report-schedules - Get periodic report schedules of current user
+exports.getReportSchedules = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const schedules = await userService.getReportSchedules(userId, req.query);
+    res.json(schedules);
+});
+
+// POST /users/me/report-schedules - Save a periodic report schedule
+exports.saveReportSchedule = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const result = await userService.saveReportSchedule(userId, req.body);
+    res.status(result.created ? 201 : 200).json(result.schedule);
+});
+
 /**
  * Demo endpoints cho role-based access control
  */

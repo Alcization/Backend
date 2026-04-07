@@ -8,6 +8,7 @@ Base URL: `http://localhost:3000`
 - [User Profile](#user-profile)
 - [User Preferences](#user-preferences)
 - [Notifications](#notifications)
+- [Report Schedules](#report-schedules)
 - [Route &amp; Location Management](#route--location-management)
 - [Prediction &amp; Risk Assessment](#prediction--risk-assessment)
 - [Map &amp; Real-time Data](#map--real-time-data)
@@ -447,6 +448,110 @@ Authorization: Bearer <access_token>
 ```
 Authorization: Bearer <access_token>
 ```
+
+---
+
+## Report Schedules
+
+### Save Report Schedule
+
+Create or update periodic report delivery schedule for the authenticated user.
+
+**Endpoint:** `POST /api/users/me/report-schedules`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**Request Body:**
+
+```json
+{
+  "type": "weekly",
+  "day": 2,
+  "name": "Thời tiết",
+  "email": "receiver@example.com"
+}
+```
+
+**Field Descriptions:**
+
+- `type` (required): `weekly` or `monthly`
+- `day` (required, integer):
+  - If `type = monthly`: from `1` to `31`
+  - If `type = weekly`: from `2` to `8` (`2 = Monday`, `8 = Sunday`)
+- `name` (optional, nullable): Report type name. Can be `null` for business report or a specific value such as `Thời tiết`, `Cảnh báo`, `Sự cố`
+- `email` (required): Receiver email address
+
+**Responses:**
+
+- `201 Created`: When user has no schedule yet and a new record is created
+- `200 OK`: When user already has a schedule and the existing record is updated
+
+```json
+{
+  "id": 1,
+  "user_id": 21,
+  "type": "weekly",
+  "day": 2,
+  "name": "Thời tiết",
+  "email": "receiver@example.com"
+}
+```
+
+**Common Error Cases:**
+
+- `400 Bad Request`: `type is required and must be weekly or monthly`
+- `400 Bad Request`: `day must be from 1 to 31 for monthly schedule`
+- `400 Bad Request`: `day must be from 2 to 8 for weekly schedule (2=Monday, 8=Sunday)`
+- `400 Bad Request`: `email is required and must be a valid email`
+
+---
+
+### Get Report Schedules
+
+Get periodic report schedules of the authenticated user.
+
+**Endpoint:** `GET /api/users/me/report-schedules`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**Query Parameters:**
+
+- `type` (optional): Filter schedules by `weekly` or `monthly`
+
+**Response:** `200 OK`
+
+```json
+[
+  {
+    "id": 2,
+    "user_id": 21,
+    "type": "monthly",
+    "day": 15,
+    "name": null,
+    "email": "ceo@company.com"
+  },
+  {
+    "id": 1,
+    "user_id": 21,
+    "type": "weekly",
+    "day": 2,
+    "name": "Cảnh báo",
+    "email": "receiver@example.com"
+  }
+]
+```
+
+**Common Error Cases:**
+
+- `400 Bad Request`: `type must be weekly or monthly`
 
 ---
 

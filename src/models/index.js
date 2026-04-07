@@ -11,6 +11,7 @@ const adminModels = require('./admin.model');
 const routeModels = require('./route.model');
 const scenarioModels = require('./scenario.model');
 const Otp = require('./otp.model');
+const reportScheduleModels = require('./reportSchedule.model');
 
 // Optionally expose models and sequelize instance
 module.exports = {
@@ -24,5 +25,6 @@ module.exports = {
   ...adminModels,
   ...routeModels,
   ...scenarioModels,
-  Otp
+  Otp,
+  ...reportScheduleModels
 };
