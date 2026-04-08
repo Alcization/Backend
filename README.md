@@ -130,3 +130,18 @@ npm start
 # Roles sẽ tự động được khởi tạo
 ```
 
+### 2. Chạy bằng Docker
+```bash
+docker compose up --build
+```
+
+Khi dùng `docker compose`, backend sẽ nối tới PostgreSQL trong service `db`, nên `DB_HOST` phải là `db` và `DB_PORT` là `5432`. File `docker-compose.yml` đã cấu hình sẵn các giá trị này, đồng thời vẫn đọc phần còn lại từ `.env` hiện có.
+
+Nếu bạn chỉ build image riêng lẻ:
+```bash
+docker build -t web-service-backend .
+docker run --rm -p 3000:3000 --env-file .env web-service-backend
+```
+
+Lưu ý: với cách chạy image riêng lẻ, bạn cần tự cung cấp một PostgreSQL bên ngoài và chỉnh `DB_HOST`/`DB_PORT` phù hợp.
+
