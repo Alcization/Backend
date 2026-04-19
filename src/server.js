@@ -3,6 +3,37 @@ const sequelize = require('./config/database');
 const initializeRoles = require('./config/initial-roles');
 
 const PORT = process.env.PORT || 3000;
+const ALLOW_START_WITHOUT_DB = process.env.ALLOW_START_WITHOUT_DB === 'true';
+const remoteDatabaseUrl = process.env.EXTERNAL_DATABASE_URL || process.env.DATABASE_URL;
+
+app.locals.dbReady = false;
+
+const getDatabaseTarget = () => {
+    if (remoteDatabaseUrl) {
+        try {
+            const parsed = new URL(remoteDatabaseUrl);
+            return `remote (${parsed.hostname}:${parsed.port || '5432'}${parsed.pathname})`;
+        } catch (error) {
+            return 'remote (from EXTERNAL_DATABASE_URL/DATABASE_URL)';
+        }
+    }
+
+    const host = process.env.DB_HOST || 'localhost';
+    const port = process.env.DB_PORT || '4567';
+    const name = process.env.DB_NAME || 'unknown_db';
+
+    return `local (${host}:${port}/${name})`;
+};
+
+const startHttpServer = () => {
+    app.listen(PORT, () => {
+        console.log(`✓ Server running on port ${PORT}`);
+        console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
+        if (ALLOW_START_WITHOUT_DB) {
+            console.log('✓ ALLOW_START_WITHOUT_DB is enabled. Service can run in degraded mode when DB is unavailable.');
+        }
+    });
+};
 
 /**
  * Khởi động server với JWT Authentication & Role-Based Access Control
@@ -10,27 +41,34 @@ const PORT = process.env.PORT || 3000;
  */
 
 // Kiểm tra kết nối DB và khởi tạo roles trước khi start server
+console.log(`✓ Database target: ${getDatabaseTarget()}`);
+
 sequelize.authenticate()
     .then(async () => {
-        console.log('✓ Database connected successfully.');
-        
+        console.log(`✓ Database connected successfully (${getDatabaseTarget()}).`);
+        app.locals.dbReady = true;
+
         // Sync database models
         // await sequelize.sync({ alter: true }); // Chỉ bật khi dev để auto tạo/cập nhật bảng
-        
+
         // Khởi tạo roles trong database
         try {
             await initializeRoles();
         } catch (error) {
             console.warn('Warning: Could not initialize roles. They may already exist.', error.message);
         }
-        
-        // Start server
-        app.listen(PORT, () => {
-            console.log(`✓ Server running on port ${PORT}`);
-            console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
-        });
+
+        startHttpServer();
     })
     .catch(err => {
-        console.error('✗ Unable to connect to the database:', err);
+        app.locals.dbReady = false;
+        console.error('✗ Unable to connect to the database:', err.message);
+
+        if (ALLOW_START_WITHOUT_DB) {
+            console.warn('⚠ Starting server without database connection (degraded mode).');
+            startHttpServer();
+            return;
+        }
+
         process.exit(1);
     });

@@ -2807,11 +2807,13 @@ Returns all admin areas. Officers see only their own areas, super admins see all
 **Endpoint:** `GET /api/admin/areas`
 
 **Headers:**
+
 ```
 Authorization: Bearer YOUR_ADMIN_TOKEN
 ```
 
 **Response:** `200 OK`
+
 ```json
 [
   {
@@ -2839,6 +2841,7 @@ Authorization: Bearer YOUR_ADMIN_TOKEN
 ```
 
 **cURL Example:**
+
 ```bash
 curl http://localhost:3000/api/admin/areas \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
@@ -2853,9 +2856,11 @@ Retrieve details of a specific admin area.
 **Endpoint:** `GET /api/admin/areas/:id`
 
 **Parameters:**
+
 - `id` (path): Area ID
 
 **Response:** `200 OK`
+
 ```json
 {
   "area_id": 1,
@@ -2875,6 +2880,7 @@ Retrieve details of a specific admin area.
 ```
 
 **cURL Example:**
+
 ```bash
 curl http://localhost:3000/api/admin/areas/1 \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
@@ -2889,6 +2895,7 @@ Create a new admin area with full details.
 **Endpoint:** `POST /api/admin/areas`
 
 **Request Body:**
+
 ```json
 {
   "name": "Phường 1, Quận 1",
@@ -2905,6 +2912,7 @@ Create a new admin area with full details.
 ```
 
 **Field Descriptions:**
+
 - `name` (required): Area name
 - `area_type` (required): Type of area - "Phường" or "Quận"
 - `address` (required): Text address for the area
@@ -2915,6 +2923,7 @@ Create a new admin area with full details.
   - `radius_km` (required): Radius in kilometers (must be > 0)
 
 **Response:** `201 Created`
+
 ```json
 {
   "area_id": 5,
@@ -2934,6 +2943,7 @@ Create a new admin area with full details.
 ```
 
 **cURL Example:**
+
 ```bash
 curl -X POST http://localhost:3000/api/admin/areas \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
@@ -2958,9 +2968,11 @@ Update an existing admin area.
 **Endpoint:** `PUT /api/admin/areas/:id`
 
 **Parameters:**
+
 - `id` (path): Area ID
 
 **Request Body (all fields optional):**
+
 ```json
 {
   "name": "Phường 2, Quận 1",
@@ -2977,6 +2989,7 @@ Update an existing admin area.
 ```
 
 **Response:** `200 OK`
+
 ```json
 {
   "area_id": 5,
@@ -2996,6 +3009,7 @@ Update an existing admin area.
 ```
 
 **cURL Example:**
+
 ```bash
 curl -X PUT http://localhost:3000/api/admin/areas/5 \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
@@ -3018,9 +3032,11 @@ Delete an admin area.
 **Endpoint:** `DELETE /api/admin/areas/:id`
 
 **Parameters:**
+
 - `id` (path): Area ID
 
 **Response:** `200 OK`
+
 ```json
 {
   "message": "Area deleted successfully"
@@ -3028,6 +3044,7 @@ Delete an admin area.
 ```
 
 **cURL Example:**
+
 ```bash
 curl -X DELETE http://localhost:3000/api/admin/areas/5 \
   -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
@@ -3213,11 +3230,13 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 ### Admin Tables
 
 **administrative_officer** - Administrative officers managing areas
+
 - `officer_id` (INTEGER, PK, auto-increment)
 - `user_id` (INTEGER, FK → user_account)
 - `department` (STRING)
 
 **admin_area** - Geographical areas managed by officers
+
 - `area_id` (INTEGER, PK, auto-increment)
 - `officer_id` (INTEGER, FK → administrative_officer)
 - `name` (STRING) - Area name
@@ -3228,12 +3247,14 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 - `boundary_polygon` (TEXT) - Legacy GeoJSON/Polygon field
 
 **response_scenario** - Emergency response plans
+
 - `scenario_id` (INTEGER, PK, auto-increment)
 - `area_id` (INTEGER, FK → admin_area)
 - `name` (STRING)
 - `applicable_event_type` (STRING) - Flood, Traffic Jam, Accident, etc.
 
 **checklist_item** - Action items in scenarios
+
 - `item_id` (INTEGER, PK, auto-increment)
 - `scenario_id` (INTEGER, FK → response_scenario)
 - `name` (STRING)
