@@ -19,6 +19,7 @@ tags:
   - name: Routes
   - name: Analysis
   - name: Response Scenarios
+  - name: Weather
 
 paths:
   /api/auth/signup:
@@ -945,6 +946,75 @@ paths:
       responses:
         '200':
           description: Scenario deleted
+
+  /api/weather/geo:
+    post:
+      tags: [Weather]
+      summary: Get direct geocoding
+      description: Converts city name into geographic coordinates (latitude, longitude)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                q:
+                  type: string
+                  description: City name
+                limit:
+                  type: integer
+                  description: Number of results (default 1)
+              required: [q]
+      responses:
+        '200':
+          description: Geocoding result returned
+
+  /api/weather/data/weather:
+    post:
+      tags: [Weather]
+      summary: Get current weather
+      description: Get current weather data for a specific location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                lat:
+                  type: number
+                  description: Latitude
+                lon:
+                  type: number
+                  description: Longitude
+              required: [lat, lon]
+      responses:
+        '200':
+          description: Current weather data returned
+
+  /api/weather/data/forecast:
+    post:
+      tags: [Weather]
+      summary: Get weather forecast
+      description: Get 5-day weather forecast for a specific location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                lat:
+                  type: number
+                  description: Latitude
+                lon:
+                  type: number
+                  description: Longitude
+              required: [lat, lon]
+      responses:
+        '200':
+          description: Weather forecast returned
 
 components:
   securitySchemes:
