@@ -1,0 +1,1004 @@
+openapi: 3.0.3
+info:
+  title: Web Service Backend API
+  version: 1.0.0
+  description: |
+    OpenAPI specification for the Express backend.
+    Base API prefix is `/api`.
+servers:
+  - url: https://backend-yp5g.onrender.com
+
+tags:
+  - name: Health
+  - name: Auth
+  - name: Users
+  - name: Predictions
+  - name: Map
+  - name: Business
+  - name: Admin
+  - name: Routes
+  - name: Analysis
+  - name: Response Scenarios
+
+paths:
+  /api/auth/signup:
+    post:
+      tags: [Auth]
+      summary: Sign up
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SignupRequest'
+      responses:
+        '201':
+          description: User created
+        '400':
+          description: Validation error
+
+  /api/auth/signin:
+    post:
+      tags: [Auth]
+      summary: Sign in
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SigninRequest'
+      responses:
+        '200':
+          description: Authentication successful
+
+  /api/auth/google:
+    post:
+      tags: [Auth]
+      summary: Google OAuth login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                idToken:
+                  type: string
+              required: [idToken]
+      responses:
+        '200':
+          description: Authentication successful
+
+  /api/auth/logout:
+    post:
+      tags: [Auth]
+      summary: Log out
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Logged out
+        '401':
+          description: Unauthorized
+
+  /api/auth/refresh-token:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
+      responses:
+        '200':
+          description: Token refreshed
+
+  /api/auth/send-otp:
+    post:
+      tags: [Auth]
+      summary: Send OTP to email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+              required: [email]
+      responses:
+        '200':
+          description: OTP sent
+
+  /api/auth/verify-otp:
+    post:
+      tags: [Auth]
+      summary: Verify OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                code:
+                  type: string
+              required: [email, code]
+      responses:
+        '200':
+          description: OTP verified
+
+  /api/auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password by email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                newPassword:
+                  type: string
+              required: [email, newPassword]
+      responses:
+        '200':
+          description: Password reset successful
+
+  /api/users/test/all:
+    get:
+      tags: [Users]
+      summary: Public test endpoint
+      responses:
+        '200':
+          description: Success
+
+  /api/users/test/user:
+    get:
+      tags: [Users]
+      summary: Authenticated user test endpoint
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Success
+
+  /api/users/test/mod:
+    get:
+      tags: [Users]
+      summary: Moderator test endpoint
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Success
+        '403':
+          description: Forbidden
+
+  /api/users/test/admin:
+    get:
+      tags: [Users]
+      summary: Admin test endpoint
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Success
+        '403':
+          description: Forbidden
+
+  /api/users/me:
+    get:
+      tags: [Users]
+      summary: Get current user profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile returned
+    put:
+      tags: [Users]
+      summary: Update current user profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Profile updated
+
+  /api/users/me/preferences:
+    get:
+      tags: [Users]
+      summary: Get user preferences
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Preferences returned
+    put:
+      tags: [Users]
+      summary: Update user preferences
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Preferences updated
+
+  /api/users/notifications:
+    get:
+      tags: [Users]
+      summary: Get notifications
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Notifications returned
+
+  /api/users/notification:
+    get:
+      tags: [Users]
+      summary: Get notifications (alias)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Notifications returned
+
+  /api/users/notifications/{id}/read:
+    put:
+      tags: [Users]
+      summary: Mark notification as read
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Notification marked as read
+
+  /api/users/me/report-schedules:
+    get:
+      tags: [Users]
+      summary: Get report schedules
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Schedules returned
+    post:
+      tags: [Users]
+      summary: Save report schedule
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Schedule updated
+        '201':
+          description: Schedule saved
+
+  /api/predictions/risk-evaluate:
+    post:
+      tags: [Predictions]
+      summary: Evaluate route risk
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                routeId:
+                  type: integer
+                startTime:
+                  type: string
+                  format: date-time
+              required: [routeId]
+      responses:
+        '200':
+          description: Risk evaluation result
+
+  /api/map/traffic:
+    get:
+      tags: [Map]
+      summary: Get traffic data
+      responses:
+        '200':
+          description: Traffic data returned
+
+  /api/map/weather-areas:
+    get:
+      tags: [Map]
+      summary: Get weather areas
+      responses:
+        '200':
+          description: Weather areas returned
+
+  /api/map/incidents:
+    get:
+      tags: [Map]
+      summary: Get incidents data
+      responses:
+        '200':
+          description: Incidents returned
+
+  /api/business/policies:
+    get:
+      tags: [Business]
+      summary: Get alert policies
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Policies returned
+        '403':
+          description: Forbidden
+    post:
+      tags: [Business]
+      summary: Create alert policy
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Policy created
+
+  /api/business/dashboard:
+    get:
+      tags: [Business]
+      summary: Get business dashboard
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard data returned
+
+  /api/business/reports/weekly:
+    get:
+      tags: [Business]
+      summary: Get weekly report
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Weekly report returned
+
+  /api/admin/areas:
+    get:
+      tags: [Admin]
+      summary: List areas
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Areas returned
+    post:
+      tags: [Admin]
+      summary: Create area
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Area created
+
+  /api/admin/areas/{id}:
+    get:
+      tags: [Admin]
+      summary: Get area by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Area returned
+    put:
+      tags: [Admin]
+      summary: Update area
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Area updated
+    delete:
+      tags: [Admin]
+      summary: Delete area
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Area deleted
+
+  /api/admin/scenarios:
+    get:
+      tags: [Admin]
+      summary: List scenarios
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Scenarios returned
+    post:
+      tags: [Admin]
+      summary: Create scenario
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Scenario created
+
+  /api/admin/scenarios/{id}:
+    get:
+      tags: [Admin]
+      summary: Get scenario by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Scenario returned
+
+  /api/admin/scenarios/{id}/items:
+    post:
+      tags: [Admin]
+      summary: Add checklist item to scenario
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Checklist item added
+
+  /api/admin/dashboard:
+    get:
+      tags: [Admin]
+      summary: Get admin dashboard
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard returned
+
+  /api/admin/alerts:
+    get:
+      tags: [Admin]
+      summary: List alert events
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Alerts returned
+    post:
+      tags: [Admin]
+      summary: Create alert event
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Alert created
+
+  /api/admin/alerts/{id}:
+    get:
+      tags: [Admin]
+      summary: Get alert event by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Alert returned
+    put:
+      tags: [Admin]
+      summary: Update alert event
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Alert updated
+    delete:
+      tags: [Admin]
+      summary: Delete alert event
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Alert deleted
+
+  /api/routes:
+    get:
+      tags: [Routes]
+      summary: List routes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Routes returned
+    post:
+      tags: [Routes]
+      summary: Create route
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Route created
+
+  /api/routes/locations:
+    get:
+      tags: [Routes]
+      summary: List locations
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Locations returned
+    post:
+      tags: [Routes]
+      summary: Create location
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Location created
+
+  /api/routes/locations/{id}:
+    put:
+      tags: [Routes]
+      summary: Update location
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Location updated
+    delete:
+      tags: [Routes]
+      summary: Delete location
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Location deleted
+
+  /api/routes/favorites:
+    get:
+      tags: [Routes]
+      summary: List favorite routes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Favorites returned
+    post:
+      tags: [Routes]
+      summary: Create favorite route
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Favorite created
+
+  /api/routes/favorites/{id}:
+    get:
+      tags: [Routes]
+      summary: Get favorite route by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Favorite route returned
+    put:
+      tags: [Routes]
+      summary: Update favorite route
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Favorite route updated
+    delete:
+      tags: [Routes]
+      summary: Delete favorite route
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Favorite route deleted
+
+  /api/routes/history:
+    get:
+      tags: [Routes]
+      summary: Get search history
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Search history returned
+    post:
+      tags: [Routes]
+      summary: Create search history entry
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Search history entry created
+
+  /api/routes/weather-history:
+    get:
+      tags: [Routes]
+      summary: Get weather history
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Weather history returned
+    post:
+      tags: [Routes]
+      summary: Create weather history entry
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Weather history entry created
+
+  /api/routes/{id}:
+    get:
+      tags: [Routes]
+      summary: Get route by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Route returned
+    put:
+      tags: [Routes]
+      summary: Update route
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Route updated
+    delete:
+      tags: [Routes]
+      summary: Delete route
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Route deleted
+
+  /api/routes/{id}/analysis:
+    get:
+      tags: [Routes]
+      summary: Get route analysis
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Analysis returned
+
+  /api/analysis/forecast:
+    get:
+      tags: [Analysis]
+      summary: Get weather forecast
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: lat
+          required: true
+          schema:
+            type: number
+        - in: query
+          name: lng
+          required: true
+          schema:
+            type: number
+      responses:
+        '200':
+          description: Forecast returned
+
+  /api/analysis/assess-risk:
+    post:
+      tags: [Analysis]
+      summary: Assess trip risk
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                route_id:
+                  type: integer
+                origin:
+                  type: object
+                  properties:
+                    lat:
+                      type: number
+                    lng:
+                      type: number
+                destination:
+                  type: object
+                  properties:
+                    lat:
+                      type: number
+                    lng:
+                      type: number
+                start_time:
+                  type: string
+                  format: date-time
+                trip_id:
+                  type: integer
+      responses:
+        '200':
+          description: Risk assessment returned
+
+  /api/response-scenarios:
+    get:
+      tags: [Response Scenarios]
+      summary: List response scenarios
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Scenarios returned
+    post:
+      tags: [Response Scenarios]
+      summary: Create response scenario
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '201':
+          description: Scenario created
+
+  /api/response-scenarios/{id}:
+    get:
+      tags: [Response Scenarios]
+      summary: Get response scenario by id
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Scenario returned
+    put:
+      tags: [Response Scenarios]
+      summary: Update response scenario
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Scenario updated
+    delete:
+      tags: [Response Scenarios]
+      summary: Delete response scenario
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Scenario deleted
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: integer
+
+  schemas:
+    SignupRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        accountType:
+          type: string
+          enum: [individual, business]
+        fullName:
+          type: string
+        companyName:
+          type: string
+        taxCode:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+      required: [email, password]
+
+    SigninRequest:
+      type: object
+      properties:
+        emailOrUsername:
+          type: string
+        password:
+          type: string
+      required: [emailOrUsername, password]
+
+    RefreshTokenRequest:
+      type: object
+      properties:
+        refreshToken:
+          type: string
+      required: [refreshToken]
