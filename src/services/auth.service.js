@@ -9,14 +9,43 @@ const Otp = require('../models/otp.model');
 const sequelize = require('../config/database');
 const createOTP = require('../helpers/createOTP');
 const sendMail = require('../helpers/sendMail');
+const sendMailResend = require('../helpers/sendMailResend');
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const getGoogleClientIds = () => {
+    const clientIdsFromList = (process.env.GOOGLE_CLIENT_IDS || '')
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean);
+
+    const clientIds = [...clientIdsFromList];
+    if (process.env.GOOGLE_CLIENT_ID) {
+        clientIds.push(process.env.GOOGLE_CLIENT_ID.trim());
+    }
+
+    return Array.from(new Set(clientIds));
+};
+
+const createGoogleClient = () => {
+    if (process.env.GOOGLE_CLIENT_ID) {
+        return new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    }
+
+    return new OAuth2Client();
+};
+
+const googleClient = createGoogleClient();
 
 /**
  * Authentication Service - JWT với Role-Based Access Control
  * Theo: https://www.corbado.com/blog/nodejs-express-postgresql-jwt-authentication-roles
  */
 class AuthService {
+    _createHttpError(message, status = 400) {
+        const err = new Error(message);
+        err.status = status;
+        return err;
+    }
+
     /**
      * Đăng ký người dùng mới với role assignment
      */
@@ -140,19 +169,14 @@ class AuthService {
      * Đăng nhập qua Google OAuth
      */
     async loginGoogle(idToken) {
-        if (!idToken) throw new Error('Missing idToken');
-        
-        // Verify token với Google
-        const ticket = await googleClient.verifyIdToken({ 
-            idToken, 
-            audience: process.env.GOOGLE_CLIENT_ID 
-        });
-        const payload = ticket.getPayload();
-        const email = payload.email;
-        const fullName = payload.name || '';
+        const identity = await this._verifyGoogleIdentity(idToken);
+        const email = identity.email;
+        const fullName = identity.fullName;
 
         const t = await sequelize.transaction();
         try {
+            let isNewUser = false;
+
             // Tìm hoặc tạo user
             let user = await UserAccount.findOne({
                 where: { email },
@@ -166,6 +190,8 @@ class AuthService {
             });
 
             if (!user) {
+                isNewUser = true;
+
                 // Tạo user mới với random password
                 const randomPass = crypto.randomBytes(16).toString('hex');
                 const salt = await bcrypt.genSalt(10);
@@ -187,6 +213,11 @@ class AuthService {
                     where: { name: 'user' },
                     transaction: t
                 });
+
+                if (!defaultRole) {
+                    throw this._createHttpError('Default role not found. Please initialize roles first.', 500);
+                }
+
                 await user.setRoles([defaultRole], { transaction: t });
 
                 // Reload user với roles
@@ -222,6 +253,7 @@ class AuthService {
                 username: user.username,
                 email: user.email,
                 roles: roles,
+                isNewUser,
                 accessToken: token,
                 refreshToken: refreshToken
             };
@@ -229,6 +261,74 @@ class AuthService {
             await t.rollback();
             throw error;
         }
+    }
+
+    async _verifyGoogleIdentity(input) {
+        const tokenValue = typeof input === 'string' ? input : '';
+        const trimmed = tokenValue.trim();
+
+        if (!trimmed) {
+            throw this._createHttpError('Missing Google credential (idToken or authorization code).');
+        }
+
+        const configuredAudiences = getGoogleClientIds();
+        if (configuredAudiences.length === 0) {
+            throw this._createHttpError('Google OAuth is not configured. Missing GOOGLE_CLIENT_ID/GOOGLE_CLIENT_IDS.', 500);
+        }
+
+        let idToken = trimmed;
+
+        // OAuth authorization code thường không chứa dấu chấm; đổi sang id_token trước khi verify.
+        if (!trimmed.includes('.')) {
+            if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || !process.env.GOOGLE_CALLBACK_URL) {
+                throw this._createHttpError(
+                    'Google OAuth code flow is not fully configured. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_CALLBACK_URL.',
+                    500
+                );
+            }
+
+            const oauthClient = new OAuth2Client(
+                process.env.GOOGLE_CLIENT_ID,
+                process.env.GOOGLE_CLIENT_SECRET,
+                process.env.GOOGLE_CALLBACK_URL
+            );
+
+            let tokenResponse;
+            try {
+                tokenResponse = await oauthClient.getToken(trimmed);
+            } catch (error) {
+                throw this._createHttpError('Invalid Google authorization code.');
+            }
+
+            idToken = tokenResponse.tokens.id_token;
+            if (!idToken) {
+                throw this._createHttpError('Google token exchange did not return id_token.');
+            }
+        }
+
+        let ticket;
+        try {
+            ticket = await googleClient.verifyIdToken({
+                idToken,
+                audience: configuredAudiences
+            });
+        } catch (error) {
+            throw this._createHttpError('Invalid Google token.');
+        }
+
+        const payload = ticket.getPayload();
+        if (!payload || !payload.email) {
+            throw this._createHttpError('Unable to read email from Google token.');
+        }
+
+        if (payload.email_verified === false) {
+            throw this._createHttpError('Google account email is not verified.');
+        }
+
+        return {
+            email: String(payload.email).trim().toLowerCase(),
+            fullName: payload.name || ''
+        };
     }
 
     /**
@@ -288,6 +388,7 @@ class AuthService {
 
     /**
      * Gửi mã OTP đến email, hiệu lực 5 phút
+     * Sử dụng Mailgun nếu được cấu hình, ngược lại dùng SMTP
      */
     async sendOtp(email) {
         if (!email) {
@@ -314,11 +415,39 @@ class AuthService {
             time: new Date()
         });
 
-        await sendMail(
-            normalizedEmail,
-            'Ma OTP xac thuc',
-            `<p>Ma OTP cua ban la: <b>${code}</b></p><p>Ma co hieu luc trong 5 phut.</p>`
-        );
+        const otpHtml = `<p>Mã OTP của bạn là: <b>${code}</b></p><p>Mã có hiệu lực trong 5 phút.</p>`;
+        
+        // Sử dụng Resend nếu được cấu hình, ngược lại dùng SMTP
+        const useResend = !!process.env.RESEND_API_KEY;
+
+        try {
+            if (useResend) {
+                await sendMailResend(
+                    normalizedEmail,
+                    'Mã OTP xác thực',
+                    otpHtml
+                );
+            } else {
+                await sendMail(
+                    normalizedEmail,
+                    'Mã OTP xác thực',
+                    otpHtml
+                );
+            }
+        } catch (error) {
+            // Nếu Resend fail, thử dùng SMTP
+            if (useResend) {
+                console.error('Resend failed:', error.message);
+                try {
+                    await sendMail(normalizedEmail, 'Mã OTP xác thực', otpHtml);
+                } catch (smtpError) {
+                    console.error('SMTP failed:', smtpError.message);
+                    throw new Error('Failed to send OTP. Both Resend and SMTP are unavailable.');
+                }
+            } else {
+                throw error;
+            }
+        }
 
         return { message: 'OTP sent successfully' };
     }

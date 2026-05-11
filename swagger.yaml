@@ -65,10 +65,37 @@ paths:
               properties:
                 idToken:
                   type: string
-              required: [idToken]
+                credential:
+                  type: string
+                code:
+                  type: string
+              description: Provide one of idToken, credential, or code.
       responses:
         '200':
           description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  username:
+                    type: string
+                    nullable: true
+                  email:
+                    type: string
+                    format: email
+                  roles:
+                    type: array
+                    items:
+                      type: string
+                  isNewUser:
+                    type: boolean
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
 
   /api/auth/logout:
     post:

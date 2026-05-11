@@ -39,8 +39,9 @@ exports.signin = asyncHandler(async (req, res) => {
  * POST /api/auth/google
  */
 exports.loginGoogle = asyncHandler(async (req, res) => {
-    const { idToken } = req.body;
-    const result = await authService.loginGoogle(idToken);
+    const { idToken, code, credential } = req.body;
+    const googleCredential = idToken || credential || code;
+    const result = await authService.loginGoogle(googleCredential);
     
     res.status(200).json(result);
 });

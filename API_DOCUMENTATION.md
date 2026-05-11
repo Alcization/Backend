@@ -105,7 +105,7 @@ Authenticate using email or username with password.
 
 ### Login with Google
 
-Authenticate using Google OAuth ID token.
+Authenticate using Google credential from frontend.
 
 **Endpoint:** `POST /api/auth/google`
 
@@ -117,6 +117,29 @@ Authenticate using Google OAuth ID token.
 }
 ```
 
+Or with Google Identity Services credential field:
+
+```json
+{
+  "credential": "google_id_token_from_frontend"
+}
+```
+
+Or with OAuth authorization code flow:
+
+```json
+{
+  "code": "authorization_code_from_google"
+}
+```
+
+**Field Descriptions:**
+
+- `idToken` (optional): Google ID token returned by frontend sign-in SDK
+- `credential` (optional): Alias of `idToken` from Google Identity Services response
+- `code` (optional): OAuth authorization code (server exchanges for `id_token`)
+- One of `idToken`, `credential`, or `code` is required.
+
 **Response:** `200 OK`
 
 ```json
@@ -125,10 +148,18 @@ Authenticate using Google OAuth ID token.
   "username": null,
   "email": "user@gmail.com",
   "roles": ["user"],
+  "isNewUser": true,
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "refreshToken": "a1b2c3d4e5f6..."
 }
 ```
+
+**Important Configuration:**
+
+- `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_IDS` must be set.
+- If using `code` flow, also set:
+  - `GOOGLE_CLIENT_SECRET`
+  - `GOOGLE_CALLBACK_URL`
 
 ---
 
