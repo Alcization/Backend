@@ -6,11 +6,13 @@ const requireRole = require('../middleware/role.middleware');
 
 // All business routes require authentication
 router.use(authJwt.verifyToken);
-router.use(requireRole('business'));
 
-// Alert Policies
+// Alert Policies are available to both individual and business accounts
 router.get('/policies', businessCtrl.getPolicies);
 router.post('/policies', businessCtrl.createPolicy);
+
+// Business-only routes
+router.use(requireRole('business'));
 
 // Dashboard
 router.get('/dashboard', businessCtrl.getDashboard);

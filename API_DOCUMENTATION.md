@@ -1582,13 +1582,11 @@ Get current incidents (floods, accidents, road closures) in GeoJSON format.
 
 ## Business Features
 
-**Authentication Required:** All business endpoints require JWT token and `business` role.
-
 ### Get Alert Policies
 
-Get all alert policies for the authenticated business user.
+Get all alert policies for the authenticated user. The endpoint returns policies for both individual and business accounts.
 
-**Endpoint:** `GET /business/policies`
+**Endpoint:** `GET /api/business/policies`
 
 **Headers:**
 
@@ -1600,29 +1598,41 @@ Authorization: Bearer <access_token>
 
 ```json
 [
-  {
-    "policy_id": 1,
-    "business_id": 1,
-    "name": "High Wind Alert",
-    "description": "Alert when wind speed exceeds level 7 during work hours",
-    "start_hour": "08:00:00",
-    "end_hour": "17:00:00",
-    "week_day": "Mon,Tue,Wed,Thu,Fri",
-    "wind_threshold": 60.0,
-    "rain_threshold": null,
-    "temp_threshold": null,
-    "status": true
-  }
+    {
+        "policy_id": 4,
+        "user_id": 17,
+        "start_hour": "06:00:00",
+        "end_hour": "16:00:00",
+        "id": 9,
+        "effect_time": 30,
+        "temp_threshold": 35,
+        "traffic_threshold": "Heavy"
+    },
+    {
+        "policy_id": 3,
+        "user_id": 17,
+        "start_hour": "06:00:00",
+        "end_hour": "23:00:00",
+        "id": 8,
+        "effect_time": 5,
+        "temp_threshold": 32,
+        "traffic_threshold": "Moderate"
+    }
 ]
 ```
+
+**Field Notes:**
+
+- `id`: `location_id` from `saved_location` for individual users, or `route_id` from `saved_route` for business users.
+- `temp_threshold` and `traffic_threshold` are optional. Send `null` to disable that alert condition.
 
 ---
 
 ### Create Alert Policy
 
-Create a new alert policy for business fleet management.
+Create or update an alert policy for the authenticated user.
 
-**Endpoint:** `POST /business/policies`
+**Endpoint:** `POST /api/business/policies`
 
 **Headers:**
 
@@ -1634,33 +1644,35 @@ Authorization: Bearer <access_token>
 
 ```json
 {
-  "name": "Heavy Rain Alert",
-  "description": "Alert when rainfall exceeds 50mm",
   "start_hour": "06:00:00",
   "end_hour": "22:00:00",
-  "week_day": "Mon,Tue,Wed,Thu,Fri,Sat,Sun",
-  "rain_threshold": 50.0,
-  "wind_threshold": null,
-  "temp_threshold": null,
-  "status": true
+  "id": 25,
+  "effect_time": 15",
+  "temp_threshold": 35,
+  "traffic_threshold": "Heavy"
 }
 ```
 
-**Response:** `201 Created`
+**Response:** `201 Created` when a new policy is created, `200 OK` when an existing policy is updated.
 
 ```json
 {
   "policy_id": 2,
-  "business_id": 1,
-  "name": "Heavy Rain Alert",
-  "description": "Alert when rainfall exceeds 50mm",
   "start_hour": "06:00:00",
   "end_hour": "22:00:00",
-  "week_day": "Mon,Tue,Wed,Thu,Fri,Sat,Sun",
-  "rain_threshold": 50.0,
-  "status": true
+  "id": 25,
+  "effect_time": "2026-05-12T06:00:00.000Z",
+  "temp_threshold": 35,
+  "traffic_threshold": "Heavy Rain"
 }
 ```
+
+**Behavior:**
+
+- The endpoint validates that `id` belongs to the authenticated user.
+- For individual users, `id` must match a row in `saved_location`.
+- For business users, `id` must match a row in `saved_route`.
+- If a policy already exists for the same `user_id` and `id`, the request updates it instead of creating a duplicate.
 
 ---
 
@@ -2795,22 +2807,22 @@ Authorization: Bearer <access_token>
 
 ## Testing with cURL
 
-### Business Endpoints
+### Shared Policies and Business Endpoints
 
 **Get Policies:**
 
 ```bash
 curl http://localhost:3000/api/business/policies \
-  -H "Authorization: Bearer YOUR_BUSINESS_TOKEN"
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
-**Create Policy:**
+**Create or Update Policy:**
 
 ```bash
 curl -X POST http://localhost:3000/api/business/policies \
-  -H "Authorization: Bearer YOUR_BUSINESS_TOKEN" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Wind Alert","wind_threshold":60,"start_hour":"08:00","end_hour":"17:00","week_day":"Mon,Tue,Wed,Thu,Fri"}'
+  -d '{"id":25,"start_hour":"08:00:00","end_hour":"17:00:00","temp_threshold":35,"traffic_threshold":"Heavy Rain"}'
 ```
 
 **Get Dashboard:**
@@ -2826,6 +2838,8 @@ curl http://localhost:3000/api/business/dashboard \
 curl http://localhost:3000/api/business/reports/weekly \
   -H "Authorization: Bearer YOUR_BUSINESS_TOKEN"
 ```
+
+Dashboard and report endpoints still require a business account token.
 
 ### Admin Endpoints
 
@@ -3255,7 +3269,7 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 ### Business Tables
 
 - `business_user` - Business user profiles
-- `alert_policy` - Business alert policies
+- `alert_policy` - Shared alert policies for individual and business users
 - `alert_event` - Triggered alerts
 
 ### Admin Tables
@@ -3299,7 +3313,7 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 1. **Authentication:** All route and analysis endpoints require authentication. Map endpoints are public.
 2. **Route Analysis:** The `/routes/:id/analysis` endpoint aggregates weather and traffic data along an entire route - perfect for trip planning.
 3. **Risk Assessment:** The `/analysis/assess-risk` endpoint provides intelligent trip risk scoring based on weather forecasts and traffic conditions.
-4. **Business Endpoints:** Require authentication AND `business` role. Returns 403 if user is not a business account.
+4. **Policies Endpoint:** `GET /api/business/policies` and `POST /api/business/policies` require authentication only; dashboard/report endpoints still require the `business` role.
 5. **Admin Endpoints:** Require authentication AND `admin` or `admin_officer` role. Returns 403 if insufficient permissions.
 6. **GeoJSON Format:** Traffic and incidents are returned in GeoJSON format for easy map integration.
 7. **Color Coding:** Traffic segments and incidents include color codes for visual representation.

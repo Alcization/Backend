@@ -1,17 +1,16 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
-const { BusinessUser } = require('./user.model');
 
-// Alert Policy - business rules for alerts
+// Alert Policy - user alert rules
 const AlertPolicy = sequelize.define('AlertPolicy', {
     policy_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    business_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'business_user', key: 'business_id' } },
-    name: { type: DataTypes.STRING(255) },
-    description: { type: DataTypes.TEXT },
-    start_hour: { type: DataTypes.TIME },
-    end_hour: { type: DataTypes.TIME },
-    week_day: { type: DataTypes.STRING(20) }, // 'Mon,Tue,Wed...'
-    status: { type: DataTypes.BOOLEAN, defaultValue: true }
+    user_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'user_account', key: 'user_id' } },
+    start_hour: { type: DataTypes.TIME, allowNull: false },
+    end_hour: { type: DataTypes.TIME, allowNull: false },
+    id: { type: DataTypes.INTEGER, allowNull: false },
+    effect_time: { type: DataTypes.INTEGER, allowNull: true },
+    temp_threshold: { type: DataTypes.INTEGER, allowNull: true },
+    traffic_threshold: { type: DataTypes.TEXT, allowNull: true }
 }, { tableName: 'alert_policy', timestamps: false });
 
 // Alert Event - triggered alerts
@@ -25,9 +24,6 @@ const AlertEvent = sequelize.define('AlertEvent', {
 }, { tableName: 'alert_event', timestamps: false });
 
 // Associations
-BusinessUser.hasMany(AlertPolicy, { foreignKey: 'business_id', onDelete: 'CASCADE' });
-AlertPolicy.belongsTo(BusinessUser, { foreignKey: 'business_id' });
-
 AlertPolicy.hasMany(AlertEvent, { foreignKey: 'policy_id', onDelete: 'CASCADE' });
 AlertEvent.belongsTo(AlertPolicy, { foreignKey: 'policy_id' });
 

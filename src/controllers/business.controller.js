@@ -11,6 +11,7 @@ exports.getPolicies = asyncHandler(async (req, res) => {
 // POST /business/policies - Create new policy
 exports.createPolicy = asyncHandler(async (req, res) => {
     const userId = req.user.id;
+    const accountType = req.user.account_type;
     
     // Validate request body
     if (!req.body || Object.keys(req.body).length === 0) {
@@ -20,8 +21,8 @@ exports.createPolicy = asyncHandler(async (req, res) => {
         });
     }
     
-    const policy = await businessService.createPolicy(userId, req.body);
-    res.status(201).json(policy);
+    const result = await businessService.createPolicy(userId, accountType, req.body);
+    res.status(result.created ? 201 : 200).json(result.policy);
 });
 
 // GET /business/dashboard - Get dashboard statistics
