@@ -168,8 +168,8 @@ class AuthService {
     /**
      * Đăng nhập qua Google OAuth
      */
-    async loginGoogle(idToken) {
-        const identity = await this._verifyGoogleIdentity(idToken);
+    async loginGoogle(credentialInput) {
+        const identity = await this._verifyGoogleIdentity(credentialInput);
         const email = identity.email;
         const fullName = identity.fullName;
 
@@ -192,8 +192,8 @@ class AuthService {
             if (!user) {
                 isNewUser = true;
 
-                // Tạo user mới với random password
-                const randomPass = crypto.randomBytes(16).toString('hex');
+                // Tạo user mới với password mặc định
+                const randomPass = '123456';
                 const salt = await bcrypt.genSalt(10);
                 const hashedPassword = await bcrypt.hash(randomPass, salt);
                 
@@ -264,22 +264,59 @@ class AuthService {
     }
 
     async _verifyGoogleIdentity(input) {
-        const tokenValue = typeof input === 'string' ? input : '';
-        const trimmed = tokenValue.trim();
-
-        if (!trimmed) {
-            throw this._createHttpError('Missing Google credential (idToken or authorization code).');
-        }
-
+        // input can be: { idToken, code, accessToken } or a simple string (legacy)
         const configuredAudiences = getGoogleClientIds();
         if (configuredAudiences.length === 0) {
             throw this._createHttpError('Google OAuth is not configured. Missing GOOGLE_CLIENT_ID/GOOGLE_CLIENT_IDS.', 500);
         }
 
-        let idToken = trimmed;
+        let idToken = null;
+        let accessToken = null;
+        let code = null;
 
-        // OAuth authorization code thường không chứa dấu chấm; đổi sang id_token trước khi verify.
-        if (!trimmed.includes('.')) {
+        if (!input) {
+            throw this._createHttpError('Missing Google credential (idToken, accessToken or authorization code).');
+        }
+
+        if (typeof input === 'string') {
+            // legacy: assume string is idToken
+            idToken = input.trim();
+        } else if (typeof input === 'object') {
+            idToken = input.idToken ? String(input.idToken).trim() : null;
+            code = input.code ? String(input.code).trim() : null;
+            accessToken = input.accessToken ? String(input.accessToken).trim() : null;
+        }
+
+        // If accessToken provided, verify via tokeninfo endpoint
+        if (accessToken) {
+            let tokenInfo;
+            try {
+                tokenInfo = await googleClient.getTokenInfo(accessToken);
+            } catch (error) {
+                throw this._createHttpError('Invalid Google access token.');
+            }
+
+            if (!tokenInfo || !tokenInfo.email) {
+                throw this._createHttpError('Unable to read email from Google access token.');
+            }
+
+            if (tokenInfo.email_verified === 'false' || tokenInfo.email_verified === false) {
+                throw this._createHttpError('Google account email is not verified.');
+            }
+
+            // Verify audience
+            if (!configuredAudiences.includes(tokenInfo.aud)) {
+                throw this._createHttpError('Google access token audience mismatch.');
+            }
+
+            return {
+                email: String(tokenInfo.email).trim().toLowerCase(),
+                fullName: tokenInfo.name || ''
+            };
+        }
+
+        // If code provided, exchange for id_token
+        if (code && !idToken) {
             if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET || !process.env.GOOGLE_CALLBACK_URL) {
                 throw this._createHttpError(
                     'Google OAuth code flow is not fully configured. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_CALLBACK_URL.',
@@ -295,7 +332,7 @@ class AuthService {
 
             let tokenResponse;
             try {
-                tokenResponse = await oauthClient.getToken(trimmed);
+                tokenResponse = await oauthClient.getToken(code);
             } catch (error) {
                 throw this._createHttpError('Invalid Google authorization code.');
             }
@@ -306,6 +343,10 @@ class AuthService {
             }
         }
 
+        if (!idToken) {
+            throw this._createHttpError('Missing idToken or accessToken.');
+        }
+
         let ticket;
         try {
             ticket = await googleClient.verifyIdToken({
@@ -313,7 +354,7 @@ class AuthService {
                 audience: configuredAudiences
             });
         } catch (error) {
-            throw this._createHttpError('Invalid Google token.');
+            throw this._createHttpError('Invalid Google id_token.');
         }
 
         const payload = ticket.getPayload();

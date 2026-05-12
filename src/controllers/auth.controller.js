@@ -39,10 +39,17 @@ exports.signin = asyncHandler(async (req, res) => {
  * POST /api/auth/google
  */
 exports.loginGoogle = asyncHandler(async (req, res) => {
-    const { idToken, code, credential } = req.body;
-    const googleCredential = idToken || credential || code;
-    const result = await authService.loginGoogle(googleCredential);
-    
+    const { idToken, code, credential, accessToken } = req.body;
+
+    // Chuẩn hoá payload để service có thể xử lý nhiều luồng (id_token, code, access_token)
+    const payload = {
+        idToken: idToken || credential || null,
+        code: code || null,
+        accessToken: accessToken || null
+    };
+
+    const result = await authService.loginGoogle(payload);
+
     res.status(200).json(result);
 });
 
