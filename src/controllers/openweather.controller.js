@@ -15,7 +15,17 @@ exports.getDirectGeocoding = asyncHandler(async (req, res) => {
 });
 
 exports.getForecast = asyncHandler(async (req, res) => {
-    const data = await openWeatherService.getForecast(resolveParams(req));
+    const data = await openWeatherService.getHourlyForecast(resolveParams(req));
+    res.json(data);
+});
+
+exports.getHourlyForecast = asyncHandler(async (req, res) => {
+    const data = await openWeatherService.getHourlyForecast(resolveParams(req));
+    res.json(data);
+});
+
+exports.getDailyForecast = asyncHandler(async (req, res) => {
+    const data = await openWeatherService.getDailyForecast(resolveParams(req));
     res.json(data);
 });
 

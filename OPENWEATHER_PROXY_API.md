@@ -65,27 +65,31 @@ Content-Type: application/json
 
 ---
 
-## 2) 5 day / 3 hour Forecast
+## 2) Hourly Forecast (24 hours)
 
 Backend endpoint:
 
-`POST /api/weather/data/2.5/forecast`
+`POST /api/weather/data/forecast/hourly`
+
+Legacy alias:
+
+`POST /api/weather/data/forecast`
 
 External endpoint duoc proxy:
 
-`GET https://api.openweathermap.org/data/2.5/forecast`
+`GET https://pro.openweathermap.org/data/2.5/forecast/hourly`
 
 ### Body params thong dung
 
 - `lat` + `lon` (required neu khong dung `q`): toa do.
-- `q` (optional): ten dia diem.
+- `q` (optional): ten dia diem; backend se geocode ra `lat/lon`.
 - `units` (optional): `standard` | `metric` | `imperial`.
 - `lang` (optional): ngon ngu mo ta thoi tiet.
 
 ### Vi du request
 
 ```http
-POST /api/weather/data/2.5/forecast
+POST /api/weather/data/forecast/hourly
 Content-Type: application/json
 
 {
@@ -100,14 +104,16 @@ Content-Type: application/json
 
 ```json
 {
-  "cod": "200",
-  "list": [
+  "location": {
+    "lat": 10.8231,
+    "lon": 106.6297,
+    "name": "Ho Chi Minh City"
+  },
+  "hourly": [
     {
       "dt": 1714021200,
-      "main": {
-        "temp": 30.1,
-        "humidity": 72
-      },
+      "temp": 30.1,
+      "humidity": 72,
       "weather": [
         {
           "main": "Clouds",
@@ -115,16 +121,76 @@ Content-Type: application/json
         }
       ]
     }
-  ],
-  "city": {
-    "name": "Ho Chi Minh City"
-  }
+  ]
 }
 ```
 
 ---
 
-## 3) Current Weather
+## 3) Daily Forecast (7 days)
+
+Backend endpoint:
+
+`POST /api/weather/data/forecast/daily`
+
+External endpoint duoc proxy:
+
+`GET https://api.openweathermap.org/data/2.5/forecast/daily?cnt=7`
+
+### Body params thong dung
+
+- `lat` + `lon` (required neu khong dung `q`): toa do.
+- `q` (optional): ten dia diem; backend se geocode ra `lat/lon`.
+- `units` (optional): `standard` | `metric` | `imperial`.
+- `lang` (optional): ngon ngu mo ta thoi tiet.
+- `cnt` (optional): so ngay can lay, mac dinh la `7`.
+
+### Vi du request
+
+```http
+POST /api/weather/data/forecast/daily
+Content-Type: application/json
+
+{
+  "lat": 10.8231,
+  "lon": 106.6297,
+  "cnt": 7,
+  "units": "metric",
+  "lang": "vi"
+}
+```
+
+### Vi du response (rut gon)
+
+```json
+{
+  "location": {
+    "lat": 10.8231,
+    "lon": 106.6297,
+    "name": "Ho Chi Minh City"
+  },
+  "daily": [
+    {
+      "dt": 1714021200,
+      "temp": {
+        "day": 30.1,
+        "min": 27.5,
+        "max": 33.2
+      },
+      "weather": [
+        {
+          "main": "Rain",
+          "description": "mua nhe"
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## 4) Current Weather
 
 Backend endpoint:
 
@@ -179,7 +245,7 @@ Content-Type: application/json
 
 ---
 
-## 4) City History
+## 5) City History
 
 Backend endpoint:
 
@@ -257,6 +323,7 @@ Backend se tra ma loi phu hop theo ket qua tu OpenWeather:
 
 ```bash
 curl -X POST "http://localhost:3000/api/weather/geo/1.0/direct" -H "Content-Type: application/json" -d "{\"q\":\"Da Nang\",\"limit\":3}"
+curl -X POST "http://localhost:3000/api/weather/data/forecast/hourly" -H "Content-Type: application/json" -d "{\"q\":\"Da Nang\",\"limit\":3}"
+curl -X POST "http://localhost:3000/api/weather/data/forecast/daily" -H "Content-Type: application/json" -d "{\"q\":\"Da Nang\",\"cnt\":7,\"limit\":3}"
 curl -X POST "http://localhost:3000/api/weather/data/2.5/weather" -H "Content-Type: application/json" -d "{\"lat\":16.0544,\"lon\":108.2022,\"units\":\"metric\"}"
-curl -X POST "http://localhost:3000/api/weather/data/2.5/forecast" -H "Content-Type: application/json" -d "{\"lat\":16.0544,\"lon\":108.2022,\"units\":\"metric\"}"
 ```
