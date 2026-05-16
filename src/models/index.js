@@ -12,6 +12,7 @@ const routeModels = require('./route.model');
 const scenarioModels = require('./scenario.model');
 const Otp = require('./otp.model');
 const reportScheduleModels = require('./reportSchedule.model');
+const reportHistoryModels = require('./reportHistory.model');
 
 // Optionally expose models and sequelize instance
 module.exports = {
@@ -26,5 +27,6 @@ module.exports = {
   ...routeModels,
   ...scenarioModels,
   Otp,
-  ...reportScheduleModels
+  ...reportScheduleModels,
+  ...reportHistoryModels
 };

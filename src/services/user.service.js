@@ -1,6 +1,7 @@
 const { UserAccount, IndividualUser, BusinessUser } = require('../models/user.model');
 const { NotificationPreference, NotificationEvent } = require('../models/notification.model');
 const { ReportSchedule } = require('../models/reportSchedule.model');
+const { ReportHistory } = require('../models/reportHistory.model');
 
 const REPORT_SCHEDULE_TYPE = {
     weekly: 'weekly',
@@ -128,6 +129,44 @@ class UserService {
         return schedules.map(schedule => this._formatScheduleForResponse(schedule));
     }
 
+    async getReportHistory(userId, query = {}) {
+        const limit = this._parsePositiveInt(query.limit, 20);
+        const page = this._parsePositiveInt(query.page, 1);
+        const offset = (page - 1) * limit;
+
+        const rows = await ReportHistory.findAll({
+            where: { user_id: userId },
+            order: [['time', 'DESC'], ['id', 'DESC']],
+            limit,
+            offset
+        });
+
+        return {
+            items: rows
+        };
+    }
+
+    async createReportHistory(userId, data) {
+        if (!data || typeof data !== 'object') {
+            const error = new Error('Request body is required');
+            error.status = 400;
+            throw error;
+        }
+
+        const name = this._normalizeOptionalText(data.name);
+        const link = this._normalizeRequiredText(data.link, 'link');
+        const reportTime = this._normalizeDateTime(data.time);
+
+        const created = await ReportHistory.create({
+            user_id: userId,
+            name,
+            time: reportTime,
+            link
+        });
+
+        return created;
+    }
+
     async saveReportSchedule(userId, data) {
         if (!data || typeof data !== 'object') {
             const error = new Error('Request body is required');
@@ -192,6 +231,14 @@ class UserService {
         return null;
     }
 
+    _parsePositiveInt(value, fallback) {
+        const parsed = Number.parseInt(value, 10);
+        if (!Number.isInteger(parsed) || parsed <= 0) {
+            return fallback;
+        }
+        return parsed;
+    }
+
     _validateScheduleDay(value, scheduleType) {
         const day = Number(value);
         if (!Number.isInteger(day)) {
@@ -225,6 +272,38 @@ class UserService {
 
         const trimmed = value.trim();
         return trimmed.length ? trimmed : null;
+    }
+
+    _normalizeRequiredText(value, fieldName) {
+        if (typeof value !== 'string') {
+            const error = new Error(`${fieldName} is required and must be a string`);
+            error.status = 400;
+            throw error;
+        }
+
+        const trimmed = value.trim();
+        if (!trimmed.length) {
+            const error = new Error(`${fieldName} is required and must not be empty`);
+            error.status = 400;
+            throw error;
+        }
+
+        return trimmed;
+    }
+
+    _normalizeDateTime(value) {
+        if (value === undefined || value === null || value === '') {
+            return new Date();
+        }
+
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+            const error = new Error('time must be a valid datetime');
+            error.status = 400;
+            throw error;
+        }
+
+        return date;
     }
 
     _normalizeReportNameForStorage(value) {

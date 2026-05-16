@@ -4,28 +4,42 @@ info:
   version: 1.0.0
   description: |
     OpenAPI specification for the Express backend.
-    Base API prefix is `/api`.
+    All endpoints are prefixed with `/api`
+  contact:
+    name: API Support
+  license:
+    name: MIT
 servers:
   - url: https://backend-yp5g.onrender.com
+    description: Production server
+  - url: http://localhost:3000
+    description: Development server
 
 tags:
-  - name: Health
   - name: Auth
+    description: Authentication endpoints
   - name: Users
-  - name: Predictions
+    description: User profile and preferences management
   - name: Map
+    description: Map data endpoints (traffic, weather areas)
   - name: Business
+    description: Business account features (policies, dashboard)
   - name: Admin
+    description: Admin management endpoints (areas, scenarios, alerts)
   - name: Routes
-  - name: Analysis
+    description: Route management (locations, favorites, history)
   - name: Response Scenarios
+    description: Response scenario management
   - name: Weather
+    description: Weather data proxy endpoints
 
 paths:
+  # ======================== AUTH ROUTES ========================
   /api/auth/signup:
     post:
       tags: [Auth]
-      summary: Sign up
+      summary: Sign up new user
+      description: Register a new user account (individual or business)
       requestBody:
         required: true
         content:
@@ -34,14 +48,15 @@ paths:
               $ref: '#/components/schemas/SignupRequest'
       responses:
         '201':
-          description: User created
+          description: User created successfully
         '400':
-          description: Validation error
+          description: Validation error (duplicate email, invalid password, etc.)
 
   /api/auth/signin:
     post:
       tags: [Auth]
-      summary: Sign in
+      summary: Sign in user
+      description: Authenticate user with email/username and password
       requestBody:
         required: true
         content:
@@ -51,11 +66,35 @@ paths:
       responses:
         '200':
           description: Authentication successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  username:
+                    type: string
+                    nullable: true
+                  email:
+                    type: string
+                    format: email
+                  roles:
+                    type: array
+                    items:
+                      type: string
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+        '401':
+          description: Invalid credentials
 
   /api/auth/google:
     post:
       tags: [Auth]
       summary: Google OAuth login
+      description: Authenticate with Google OAuth token
       requestBody:
         required: true
         content:
@@ -65,11 +104,14 @@ paths:
               properties:
                 idToken:
                   type: string
+                  description: Google ID token
                 credential:
                   type: string
+                  description: Google credential
                 code:
                   type: string
-              description: Provide one of idToken, credential, or code.
+                  description: Google authorization code
+              description: Provide one of idToken, credential, or code
       responses:
         '200':
           description: Authentication successful
@@ -96,16 +138,19 @@ paths:
                     type: string
                   refreshToken:
                     type: string
+        '400':
+          description: Invalid token or code
 
   /api/auth/logout:
     post:
       tags: [Auth]
       summary: Log out
+      description: Invalidate the current session (require authentication)
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Logged out
+          description: Logged out successfully
         '401':
           description: Unauthorized
 
@@ -113,6 +158,7 @@ paths:
     post:
       tags: [Auth]
       summary: Refresh access token
+      description: Get a new access token using refresh token
       requestBody:
         required: true
         content:
@@ -121,12 +167,24 @@ paths:
               $ref: '#/components/schemas/RefreshTokenRequest'
       responses:
         '200':
-          description: Token refreshed
+          description: Token refreshed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessToken:
+                    type: string
+                  refreshToken:
+                    type: string
+        '401':
+          description: Invalid refresh token
 
   /api/auth/send-otp:
     post:
       tags: [Auth]
       summary: Send OTP to email
+      description: Send One-Time Password to user's email for password reset
       requestBody:
         required: true
         content:
@@ -140,12 +198,15 @@ paths:
               required: [email]
       responses:
         '200':
-          description: OTP sent
+          description: OTP sent successfully
+        '404':
+          description: User not found
 
   /api/auth/verify-otp:
     post:
       tags: [Auth]
       summary: Verify OTP
+      description: Verify OTP code sent to user's email
       requestBody:
         required: true
         content:
@@ -158,15 +219,19 @@ paths:
                   format: email
                 code:
                   type: string
+                  description: OTP code from email
               required: [email, code]
       responses:
         '200':
-          description: OTP verified
+          description: OTP verified successfully
+        '400':
+          description: Invalid or expired OTP
 
   /api/auth/reset-password:
     post:
       tags: [Auth]
       summary: Reset password by email
+      description: Reset password using email and new password (requires prior OTP verification)
       requestBody:
         required: true
         content:
@@ -183,11 +248,15 @@ paths:
       responses:
         '200':
           description: Password reset successful
+        '400':
+          description: Invalid request
 
+  # ======================== USER ROUTES ========================
   /api/users/test/all:
     get:
       tags: [Users]
       summary: Public test endpoint
+      description: Test endpoint without authentication
       responses:
         '200':
           description: Success
@@ -196,48 +265,61 @@ paths:
     get:
       tags: [Users]
       summary: Authenticated user test endpoint
+      description: Test endpoint that requires authentication
       security:
         - bearerAuth: []
       responses:
         '200':
           description: Success
+        '401':
+          description: Unauthorized
 
   /api/users/test/mod:
     get:
       tags: [Users]
       summary: Moderator test endpoint
+      description: Test endpoint that requires moderator role
       security:
         - bearerAuth: []
       responses:
         '200':
           description: Success
         '403':
-          description: Forbidden
+          description: Forbidden - insufficient permissions
 
   /api/users/test/admin:
     get:
       tags: [Users]
       summary: Admin test endpoint
+      description: Test endpoint that requires admin role
       security:
         - bearerAuth: []
       responses:
         '200':
           description: Success
         '403':
-          description: Forbidden
+          description: Forbidden - insufficient permissions
 
   /api/users/me:
     get:
       tags: [Users]
       summary: Get current user profile
+      description: Retrieve authenticated user's profile information
       security:
         - bearerAuth: []
       responses:
         '200':
           description: Profile returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: Unauthorized
     put:
       tags: [Users]
       summary: Update current user profile
+      description: Update authenticated user's profile information
       security:
         - bearerAuth: []
       requestBody:
@@ -246,22 +328,41 @@ paths:
           application/json:
             schema:
               type: object
+              properties:
+                username:
+                  type: string
+                fullName:
+                  type: string
+                companyName:
+                  type: string
+                phone:
+                  type: string
       responses:
         '200':
-          description: Profile updated
+          description: Profile updated successfully
+        '401':
+          description: Unauthorized
 
   /api/users/me/preferences:
     get:
       tags: [Users]
       summary: Get user preferences
+      description: Retrieve user's preferences and settings
       security:
         - bearerAuth: []
       responses:
         '200':
           description: Preferences returned
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
     put:
       tags: [Users]
       summary: Update user preferences
+      description: Update user's preferences and settings
       security:
         - bearerAuth: []
       requestBody:
@@ -272,32 +373,47 @@ paths:
               type: object
       responses:
         '200':
-          description: Preferences updated
+          description: Preferences updated successfully
+        '401':
+          description: Unauthorized
 
   /api/users/notifications:
     get:
       tags: [Users]
-      summary: Get notifications
+      summary: Get user notifications
+      description: Retrieve all notifications for authenticated user
       security:
         - bearerAuth: []
       responses:
         '200':
           description: Notifications returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Notification'
+        '401':
+          description: Unauthorized
 
   /api/users/notification:
     get:
       tags: [Users]
-      summary: Get notifications (alias)
+      summary: Get notifications (alias endpoint)
+      description: Alternative endpoint to get notifications
       security:
         - bearerAuth: []
       responses:
         '200':
           description: Notifications returned
+        '401':
+          description: Unauthorized
 
   /api/users/notifications/{id}/read:
     put:
       tags: [Users]
       summary: Mark notification as read
+      description: Mark a specific notification as read
       security:
         - bearerAuth: []
       parameters:
@@ -306,22 +422,37 @@ paths:
           required: true
           schema:
             type: integer
+          description: Notification ID
       responses:
         '200':
           description: Notification marked as read
+        '401':
+          description: Unauthorized
+        '404':
+          description: Notification not found
 
   /api/users/me/report-schedules:
     get:
       tags: [Users]
       summary: Get report schedules
+      description: Retrieve all report schedules for the user
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Schedules returned
+          description: Report schedules returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        '401':
+          description: Unauthorized
     post:
       tags: [Users]
       summary: Save report schedule
+      description: Create or update a report schedule
       security:
         - bearerAuth: []
       requestBody:
@@ -330,16 +461,630 @@ paths:
           application/json:
             schema:
               type: object
+              properties:
+                frequency:
+                  type: string
+                  enum: [daily, weekly, monthly]
+                email:
+                  type: string
+                  format: email
+      responses:
+        '201':
+          description: Report schedule created
+        '200':
+          description: Report schedule updated
+        '401':
+          description: Unauthorized
+
+  # ======================== MAP ROUTES ========================
+  /api/map/traffic:
+    get:
+      tags: [Map]
+      summary: Get traffic data
+      description: Retrieve current traffic information
       responses:
         '200':
-          description: Schedule updated
-        '201':
-          description: Schedule saved
+          description: Traffic data returned
+          content:
+            application/json:
+              schema:
+                type: object
 
-  /api/predictions/risk-evaluate:
+  /api/map/weather-areas:
+    get:
+      tags: [Map]
+      summary: Get weather areas
+      description: Retrieve weather monitoring areas
+      responses:
+        '200':
+          description: Weather areas returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  # ======================== BUSINESS ROUTES ========================
+  /api/business/policies:
+    get:
+      tags: [Business]
+      summary: Get alert policies
+      description: Retrieve all alert policies for the business account
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Policies returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlertPolicy'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - not a business account
     post:
-      tags: [Predictions]
-      summary: Evaluate route risk
+      tags: [Business]
+      summary: Create alert policy
+      description: Create a new alert policy
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                triggers:
+                  type: array
+                  items:
+                    type: string
+                actions:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Policy created successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - not a business account
+
+  # ======================== ADMIN ROUTES ========================
+  /api/admin/areas:
+    get:
+      tags: [Admin]
+      summary: List areas
+      description: Retrieve all administrative areas
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Areas returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Area'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin role required
+    post:
+      tags: [Admin]
+      summary: Create area
+      description: Create a new administrative area
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                coordinates:
+                  type: object
+      responses:
+        '201':
+          description: Area created successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin role required
+
+  /api/admin/areas/{id}:
+    get:
+      tags: [Admin]
+      summary: Get area by id
+      description: Retrieve a specific administrative area
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Area returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Area'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin role required
+        '404':
+          description: Area not found
+    put:
+      tags: [Admin]
+      summary: Update area
+      description: Update an administrative area
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                coordinates:
+                  type: object
+      responses:
+        '200':
+          description: Area updated successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin role required
+        '404':
+          description: Area not found
+    delete:
+      tags: [Admin]
+      summary: Delete area
+      description: Delete an administrative area
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Area deleted successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin role required
+        '404':
+          description: Area not found
+
+  /api/admin/scenarios:
+    get:
+      tags: [Admin]
+      summary: List response scenarios
+      description: Retrieve all response scenarios
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Scenarios returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ResponseScenario'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin role required
+    post:
+      tags: [Admin]
+      summary: Create response scenario
+      description: Create a new response scenario
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                steps:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Scenario created successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin role required
+
+  /api/admin/scenarios/{id}:
+    get:
+      tags: [Admin]
+      summary: Get scenario by id
+      description: Retrieve a specific response scenario
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Scenario returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseScenario'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin role required
+        '404':
+          description: Scenario not found
+
+  /api/admin/scenarios/{id}/items:
+    post:
+      tags: [Admin]
+      summary: Add checklist item to scenario
+      description: Add a checklist item to a response scenario
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                item:
+                  type: string
+                description:
+                  type: string
+      responses:
+        '201':
+          description: Checklist item added successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin role required
+        '404':
+          description: Scenario not found
+
+  /api/admin/dashboard:
+    get:
+      tags: [Admin]
+      summary: Get admin dashboard
+      description: Retrieve admin dashboard with system statistics
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard data returned
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin role required
+
+  /api/admin/alerts:
+    get:
+      tags: [Admin]
+      summary: List alert events
+      description: Retrieve all alert events
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Alerts returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AlertEvent'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin role required
+    post:
+      tags: [Admin]
+      summary: Create alert event
+      description: Create a new alert event
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                severity:
+                  type: string
+                  enum: [low, medium, high, critical]
+                areaId:
+                  type: integer
+      responses:
+        '201':
+          description: Alert created successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin role required
+
+  /api/admin/alerts/{id}:
+    get:
+      tags: [Admin]
+      summary: Get alert event by id
+      description: Retrieve a specific alert event
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Alert returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertEvent'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin role required
+        '404':
+          description: Alert not found
+    put:
+      tags: [Admin]
+      summary: Update alert event
+      description: Update an alert event
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                severity:
+                  type: string
+                  enum: [low, medium, high, critical]
+                status:
+                  type: string
+                  enum: [active, resolved, cancelled]
+      responses:
+        '200':
+          description: Alert updated successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin role required
+        '404':
+          description: Alert not found
+    delete:
+      tags: [Admin]
+      summary: Delete alert event
+      description: Delete an alert event
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Alert deleted successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin role required
+        '404':
+          description: Alert not found
+
+  # ======================== ROUTES MANAGEMENT ========================
+  /api/routes/locations:
+    get:
+      tags: [Routes]
+      summary: List locations
+      description: Retrieve all saved locations for the user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Locations returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Location'
+        '401':
+          description: Unauthorized
+    post:
+      tags: [Routes]
+      summary: Create location
+      description: Create a new location
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                address:
+                  type: string
+                latitude:
+                  type: number
+                longitude:
+                  type: number
+              required: [name, latitude, longitude]
+      responses:
+        '201':
+          description: Location created successfully
+        '401':
+          description: Unauthorized
+
+  /api/routes/locations/{id}:
+    put:
+      tags: [Routes]
+      summary: Update location
+      description: Update an existing location
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                address:
+                  type: string
+                latitude:
+                  type: number
+                longitude:
+                  type: number
+      responses:
+        '200':
+          description: Location updated successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Location not found
+    delete:
+      tags: [Routes]
+      summary: Delete location
+      description: Delete a location
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Location deleted successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Location not found
+
+  /api/routes:
+    get:
+      tags: [Routes]
+      summary: List routes
+      description: Retrieve all routes for the user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Routes returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Route'
+        '401':
+          description: Unauthorized
+    post:
+      tags: [Routes]
+      summary: Create route
+      description: Create a new route
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                originId:
+                  type: integer
+                destinationId:
+                  type: integer
+                distance:
+                  type: number
+                estimatedTime:
+                  type: integer
+      responses:
+        '201':
+          description: Route created successfully
+        '401':
+          description: Unauthorized
+
+  /api/routes/favorites:
+    get:
+      tags: [Routes]
+      summary: List favorite routes
+      description: Retrieve all favorite/saved routes
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Favorite routes returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Route'
+        '401':
+          description: Unauthorized
+    post:
+      tags: [Routes]
+      summary: Create favorite route
+      description: Save a route as favorite
       security:
         - bearerAuth: []
       requestBody:
@@ -351,376 +1096,19 @@ paths:
               properties:
                 routeId:
                   type: integer
-                startTime:
+                name:
                   type: string
-                  format: date-time
-              required: [routeId]
-      responses:
-        '200':
-          description: Risk evaluation result
-
-  /api/map/traffic:
-    get:
-      tags: [Map]
-      summary: Get traffic data
-      responses:
-        '200':
-          description: Traffic data returned
-
-  /api/map/weather-areas:
-    get:
-      tags: [Map]
-      summary: Get weather areas
-      responses:
-        '200':
-          description: Weather areas returned
-
-  /api/map/incidents:
-    get:
-      tags: [Map]
-      summary: Get incidents data
-      responses:
-        '200':
-          description: Incidents returned
-
-  /api/business/policies:
-    get:
-      tags: [Business]
-      summary: Get alert policies
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Policies returned
-        '403':
-          description: Forbidden
-    post:
-      tags: [Business]
-      summary: Create alert policy
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
       responses:
         '201':
-          description: Policy created
-
-  /api/business/dashboard:
-    get:
-      tags: [Business]
-      summary: Get business dashboard
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Dashboard data returned
-
-  /api/business/reports/weekly:
-    get:
-      tags: [Business]
-      summary: Get weekly report
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Weekly report returned
-
-  /api/admin/areas:
-    get:
-      tags: [Admin]
-      summary: List areas
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Areas returned
-    post:
-      tags: [Admin]
-      summary: Create area
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '201':
-          description: Area created
-
-  /api/admin/areas/{id}:
-    get:
-      tags: [Admin]
-      summary: Get area by id
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/IdPath'
-      responses:
-        '200':
-          description: Area returned
-    put:
-      tags: [Admin]
-      summary: Update area
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/IdPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: Area updated
-    delete:
-      tags: [Admin]
-      summary: Delete area
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/IdPath'
-      responses:
-        '200':
-          description: Area deleted
-
-  /api/admin/scenarios:
-    get:
-      tags: [Admin]
-      summary: List scenarios
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Scenarios returned
-    post:
-      tags: [Admin]
-      summary: Create scenario
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '201':
-          description: Scenario created
-
-  /api/admin/scenarios/{id}:
-    get:
-      tags: [Admin]
-      summary: Get scenario by id
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/IdPath'
-      responses:
-        '200':
-          description: Scenario returned
-
-  /api/admin/scenarios/{id}/items:
-    post:
-      tags: [Admin]
-      summary: Add checklist item to scenario
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/IdPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '201':
-          description: Checklist item added
-
-  /api/admin/dashboard:
-    get:
-      tags: [Admin]
-      summary: Get admin dashboard
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Dashboard returned
-
-  /api/admin/alerts:
-    get:
-      tags: [Admin]
-      summary: List alert events
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Alerts returned
-    post:
-      tags: [Admin]
-      summary: Create alert event
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '201':
-          description: Alert created
-
-  /api/admin/alerts/{id}:
-    get:
-      tags: [Admin]
-      summary: Get alert event by id
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/IdPath'
-      responses:
-        '200':
-          description: Alert returned
-    put:
-      tags: [Admin]
-      summary: Update alert event
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/IdPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: Alert updated
-    delete:
-      tags: [Admin]
-      summary: Delete alert event
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/IdPath'
-      responses:
-        '200':
-          description: Alert deleted
-
-  /api/routes:
-    get:
-      tags: [Routes]
-      summary: List routes
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Routes returned
-    post:
-      tags: [Routes]
-      summary: Create route
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '201':
-          description: Route created
-
-  /api/routes/locations:
-    get:
-      tags: [Routes]
-      summary: List locations
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Locations returned
-    post:
-      tags: [Routes]
-      summary: Create location
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '201':
-          description: Location created
-
-  /api/routes/locations/{id}:
-    put:
-      tags: [Routes]
-      summary: Update location
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/IdPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: Location updated
-    delete:
-      tags: [Routes]
-      summary: Delete location
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/IdPath'
-      responses:
-        '200':
-          description: Location deleted
-
-  /api/routes/favorites:
-    get:
-      tags: [Routes]
-      summary: List favorite routes
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Favorites returned
-    post:
-      tags: [Routes]
-      summary: Create favorite route
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '201':
-          description: Favorite created
+          description: Favorite route created successfully
+        '401':
+          description: Unauthorized
 
   /api/routes/favorites/{id}:
     get:
       tags: [Routes]
       summary: Get favorite route by id
+      description: Retrieve a specific favorite route
       security:
         - bearerAuth: []
       parameters:
@@ -728,9 +1116,18 @@ paths:
       responses:
         '200':
           description: Favorite route returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Route'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Route not found
     put:
       tags: [Routes]
       summary: Update favorite route
+      description: Update a favorite route
       security:
         - bearerAuth: []
       parameters:
@@ -743,141 +1140,49 @@ paths:
               type: object
       responses:
         '200':
-          description: Favorite route updated
+          description: Favorite route updated successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Route not found
     delete:
       tags: [Routes]
       summary: Delete favorite route
+      description: Remove a favorite route
       security:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/IdPath'
       responses:
         '200':
-          description: Favorite route deleted
+          description: Favorite route deleted successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Route not found
 
   /api/routes/history:
     get:
       tags: [Routes]
       summary: Get search history
+      description: Retrieve user's search history
       security:
         - bearerAuth: []
       responses:
         '200':
           description: Search history returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        '401':
+          description: Unauthorized
     post:
       tags: [Routes]
       summary: Create search history entry
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '201':
-          description: Search history entry created
-
-  /api/routes/weather-history:
-    get:
-      tags: [Routes]
-      summary: Get weather history
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Weather history returned
-    post:
-      tags: [Routes]
-      summary: Create weather history entry
-      security:
-        - bearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '201':
-          description: Weather history entry created
-
-  /api/routes/{id}:
-    get:
-      tags: [Routes]
-      summary: Get route by id
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/IdPath'
-      responses:
-        '200':
-          description: Route returned
-    put:
-      tags: [Routes]
-      summary: Update route
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/IdPath'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: Route updated
-    delete:
-      tags: [Routes]
-      summary: Delete route
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/IdPath'
-      responses:
-        '200':
-          description: Route deleted
-
-  /api/routes/{id}/analysis:
-    get:
-      tags: [Routes]
-      summary: Get route analysis
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/IdPath'
-      responses:
-        '200':
-          description: Analysis returned
-
-  /api/analysis/forecast:
-    get:
-      tags: [Analysis]
-      summary: Get weather forecast
-      security:
-        - bearerAuth: []
-      parameters:
-        - in: query
-          name: lat
-          required: true
-          schema:
-            type: number
-        - in: query
-          name: lng
-          required: true
-          schema:
-            type: number
-      responses:
-        '200':
-          description: Forecast returned
-
-  /api/analysis/assess-risk:
-    post:
-      tags: [Analysis]
-      summary: Assess trip risk
+      description: Save a search to history
       security:
         - bearerAuth: []
       requestBody:
@@ -887,43 +1192,39 @@ paths:
             schema:
               type: object
               properties:
-                route_id:
-                  type: integer
-                origin:
-                  type: object
-                  properties:
-                    lat:
-                      type: number
-                    lng:
-                      type: number
-                destination:
-                  type: object
-                  properties:
-                    lat:
-                      type: number
-                    lng:
-                      type: number
-                start_time:
+                query:
+                  type: string
+                timestamp:
                   type: string
                   format: date-time
-                trip_id:
-                  type: integer
       responses:
-        '200':
-          description: Risk assessment returned
+        '201':
+          description: Search history entry created successfully
+        '401':
+          description: Unauthorized
 
-  /api/response-scenarios:
+  /api/routes/weather-history:
     get:
-      tags: [Response Scenarios]
-      summary: List response scenarios
+      tags: [Routes]
+      summary: Get weather history
+      description: Retrieve historical weather data for routes
       security:
         - bearerAuth: []
       responses:
         '200':
-          description: Scenarios returned
+          description: Weather history returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        '401':
+          description: Unauthorized
     post:
-      tags: [Response Scenarios]
-      summary: Create response scenario
+      tags: [Routes]
+      summary: Create weather history entry
+      description: Save weather data to history
       security:
         - bearerAuth: []
       requestBody:
@@ -932,14 +1233,128 @@ paths:
           application/json:
             schema:
               type: object
+              properties:
+                routeId:
+                  type: integer
+                weatherData:
+                  type: object
+                timestamp:
+                  type: string
+                  format: date-time
       responses:
         '201':
-          description: Scenario created
+          description: Weather history entry created successfully
+        '401':
+          description: Unauthorized
+
+  /api/routes/{id}:
+    get:
+      tags: [Routes]
+      summary: Get route by id
+      description: Retrieve a specific route
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Route returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Route'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Route not found
+    put:
+      tags: [Routes]
+      summary: Update route
+      description: Update a route
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Route updated successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Route not found
+    delete:
+      tags: [Routes]
+      summary: Delete route
+      description: Delete a route
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Route deleted successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Route not found
+
+  # ======================== RESPONSE SCENARIOS ROUTES ========================
+  /api/response-scenarios:
+    get:
+      tags: [Response Scenarios]
+      summary: List response scenarios
+      description: Retrieve all response scenarios
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Scenarios returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ResponseScenario'
+        '401':
+          description: Unauthorized
+    post:
+      tags: [Response Scenarios]
+      summary: Create response scenario
+      description: Create a new response scenario
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                steps:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Scenario created successfully
+        '401':
+          description: Unauthorized
 
   /api/response-scenarios/{id}:
     get:
       tags: [Response Scenarios]
       summary: Get response scenario by id
+      description: Retrieve a specific response scenario
       security:
         - bearerAuth: []
       parameters:
@@ -947,9 +1362,18 @@ paths:
       responses:
         '200':
           description: Scenario returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseScenario'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Scenario not found
     put:
       tags: [Response Scenarios]
       summary: Update response scenario
+      description: Update a response scenario
       security:
         - bearerAuth: []
       parameters:
@@ -960,25 +1384,44 @@ paths:
           application/json:
             schema:
               type: object
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                steps:
+                  type: array
+                  items:
+                    type: string
       responses:
         '200':
-          description: Scenario updated
+          description: Scenario updated successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Scenario not found
     delete:
       tags: [Response Scenarios]
       summary: Delete response scenario
+      description: Delete a response scenario
       security:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/IdPath'
       responses:
         '200':
-          description: Scenario deleted
+          description: Scenario deleted successfully
+        '401':
+          description: Unauthorized
+        '404':
+          description: Scenario not found
 
+  # ======================== WEATHER/OPENWEATHER ROUTES ========================
   /api/weather/geo:
     post:
       tags: [Weather]
       summary: Get direct geocoding
-      description: Converts city name into geographic coordinates (latitude, longitude)
+      description: Converts city name or address into geographic coordinates (latitude, longitude)
       requestBody:
         required: true
         content:
@@ -988,20 +1431,37 @@ paths:
               properties:
                 q:
                   type: string
-                  description: City name
+                  description: City name or address to geocode
                 limit:
                   type: integer
-                  description: Number of results (default 1)
+                  description: Number of results to return (default 1)
               required: [q]
       responses:
         '200':
-          description: Geocoding result returned
+          description: Geocoding results returned
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    lat:
+                      type: number
+                    lon:
+                      type: number
+                    country:
+                      type: string
+        '400':
+          description: Invalid request
 
   /api/weather/data/weather:
     post:
       tags: [Weather]
       summary: Get current weather
-      description: Get current weather data for a specific location
+      description: Retrieve current weather data for a specific location
       requestBody:
         required: true
         content:
@@ -1019,12 +1479,33 @@ paths:
       responses:
         '200':
           description: Current weather data returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  temp:
+                    type: number
+                  feels_like:
+                    type: number
+                  humidity:
+                    type: integer
+                  pressure:
+                    type: integer
+                  weather:
+                    type: array
+                    items:
+                      type: object
+                  wind_speed:
+                    type: number
+        '400':
+          description: Invalid coordinates
 
   /api/weather/data/forecast:
     post:
       tags: [Weather]
       summary: Get weather forecast
-      description: Get 5-day weather forecast for a specific location
+      description: Get weather forecast for a specific location (5-day of 3-hourly forecast)
       requestBody:
         required: true
         content:
@@ -1042,6 +1523,97 @@ paths:
       responses:
         '200':
           description: Weather forecast returned
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  list:
+                    type: array
+                    items:
+                      type: object
+        '400':
+          description: Invalid coordinates
+
+  /api/weather/data/forecast/hourly:
+    post:
+      tags: [Weather]
+      summary: Get hourly weather forecast for 24 hours
+      description: Get hourly weather forecast for a specific location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                lat:
+                  type: number
+                  description: Latitude
+                lon:
+                  type: number
+                  description: Longitude
+              required: [lat, lon]
+      responses:
+        '200':
+          description: Hourly weather forecast returned
+        '400':
+          description: Invalid coordinates
+
+  /api/weather/data/forecast/daily:
+    post:
+      tags: [Weather]
+      summary: Get daily weather forecast for 7 days
+      description: Get daily weather forecast for a specific location
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                lat:
+                  type: number
+                  description: Latitude
+                lon:
+                  type: number
+                  description: Longitude
+              required: [lat, lon]
+      responses:
+        '200':
+          description: Daily weather forecast returned
+        '400':
+          description: Invalid coordinates
+
+  /api/weather/data/history/city:
+    post:
+      tags: [Weather]
+      summary: Get city weather history
+      description: Retrieve historical weather data for a city
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                q:
+                  type: string
+                  description: City name
+                start:
+                  type: string
+                  format: date-time
+                  description: Start date for historical data
+                end:
+                  type: string
+                  format: date-time
+                  description: End date for historical data
+              required: [q]
+      responses:
+        '200':
+          description: Historical weather data returned
+        '400':
+          description: Invalid request
 
 components:
   securitySchemes:
@@ -1049,6 +1621,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+      description: JWT Bearer token authentication
 
   parameters:
     IdPath:
@@ -1057,31 +1630,41 @@ components:
       required: true
       schema:
         type: integer
+      description: Resource ID
 
   schemas:
+    # ======================== AUTH SCHEMAS ========================
     SignupRequest:
       type: object
       properties:
         username:
           type: string
+          description: Unique username
         email:
           type: string
           format: email
+          description: User email
         password:
           type: string
+          description: User password (minimum 6 characters)
         accountType:
           type: string
           enum: [individual, business]
+          description: Type of account
         fullName:
           type: string
+          description: User's full name
         companyName:
           type: string
+          description: Company name (required for business accounts)
         taxCode:
           type: string
+          description: Tax code (for business accounts)
         roles:
           type: array
           items:
             type: string
+          description: User roles
       required: [email, password]
 
     SigninRequest:
@@ -1089,8 +1672,10 @@ components:
       properties:
         emailOrUsername:
           type: string
+          description: Email or username for login
         password:
           type: string
+          description: User password
       required: [emailOrUsername, password]
 
     RefreshTokenRequest:
@@ -1098,4 +1683,173 @@ components:
       properties:
         refreshToken:
           type: string
+          description: Refresh token obtained from login
       required: [refreshToken]
+
+    # ======================== USER SCHEMAS ========================
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+          nullable: true
+        email:
+          type: string
+          format: email
+        fullName:
+          type: string
+        accountType:
+          type: string
+          enum: [individual, business]
+        roles:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        title:
+          type: string
+        message:
+          type: string
+        isRead:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    # ======================== ROUTE/LOCATION SCHEMAS ========================
+    Location:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        address:
+          type: string
+        latitude:
+          type: number
+        longitude:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+
+    Route:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        name:
+          type: string
+        originId:
+          type: integer
+        destinationId:
+          type: integer
+        distance:
+          type: number
+          description: Distance in kilometers
+        estimatedTime:
+          type: integer
+          description: Estimated time in minutes
+        isFavorite:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    # ======================== ADMIN SCHEMAS ========================
+    Area:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        coordinates:
+          type: object
+        createdAt:
+          type: string
+          format: date-time
+
+    ResponseScenario:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        steps:
+          type: array
+          items:
+            type: string
+        checklistItems:
+          type: array
+          items:
+            type: object
+        createdAt:
+          type: string
+          format: date-time
+
+    AlertEvent:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        severity:
+          type: string
+          enum: [low, medium, high, critical]
+        status:
+          type: string
+          enum: [active, resolved, cancelled]
+        areaId:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    AlertPolicy:
+      type: object
+      properties:
+        id:
+          type: integer
+        businessId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        triggers:
+          type: array
+          items:
+            type: string
+        actions:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time

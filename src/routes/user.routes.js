@@ -37,4 +37,8 @@ router.put('/notifications/:id/read', authJwt.verifyToken, userCtrl.markNotifica
 router.get('/me/report-schedules', authJwt.verifyToken, userCtrl.getReportSchedules);
 router.post('/me/report-schedules', authJwt.verifyToken, userCtrl.saveReportSchedule);
 
+// Report history routes - yêu cầu authentication
+router.get('/me/report-history', authJwt.verifyToken, userCtrl.getReportHistory);
+router.post('/me/report-history', authJwt.verifyToken, userCtrl.createReportHistory);
+
 module.exports = router;

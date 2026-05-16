@@ -9,6 +9,7 @@ Base URL: `http://localhost:3000`
 - [User Preferences](#user-preferences)
 - [Notifications](#notifications)
 - [Report Schedules](#report-schedules)
+- [Report History](#report-history)
 - [Route &amp; Location Management](#route--location-management)
 - [Prediction &amp; Risk Assessment](#prediction--risk-assessment)
 - [Map &amp; Real-time Data](#map--real-time-data)
@@ -583,6 +584,104 @@ Authorization: Bearer <access_token>
 **Common Error Cases:**
 
 - `400 Bad Request`: `type must be weekly or monthly`
+
+---
+
+## Report History
+
+### Create Report History
+
+Create a report history record for the authenticated user.
+
+**Endpoint:** `POST /api/users/me/report-history`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**Request Body:**
+
+```json
+{
+  "name": "Báo cáo thời tiết tuần",
+  "time": "2026-05-16T09:15:00.000Z",
+  "link": "https://drive.google.com/file/d/1ABCDEF/view"
+}
+```
+
+**Field Descriptions:**
+
+- `name` (optional, nullable): Report display name
+- `time` (optional): Datetime of report generation. If omitted, server uses current time
+- `link` (required): Storage link of report file (for example: Google Drive link)
+
+**Response:** `201 Created`
+
+```json
+{
+  "id": 16,
+  "user_id": 21,
+  "name": "Báo cáo thời tiết tuần",
+  "time": "2026-05-16T09:15:00.000Z",
+  "link": "https://drive.google.com/file/d/1ABCDEF/view"
+}
+```
+
+**Common Error Cases:**
+
+- `400 Bad Request`: `Request body is required`
+- `400 Bad Request`: `link is required and must be a string`
+- `400 Bad Request`: `link is required and must not be empty`
+- `400 Bad Request`: `time must be a valid datetime`
+
+---
+
+### Get Report History
+
+Get report export/download history of the authenticated user.
+
+**Endpoint:** `GET /api/users/me/report-history`
+
+**Headers:**
+
+```
+Authorization: Bearer <access_token>
+```
+
+**Query Parameters:**
+
+- `page` (optional): Page number, integer > 0 (default: `1`)
+- `limit` (optional): Items per page, integer > 0 (default: `20`)
+
+**Response:** `200 OK`
+
+```json
+{
+  "items": [
+    {
+      "id": 15,
+      "user_id": 21,
+      "name": "Báo cáo thời tiết tuần",
+      "time": "2026-05-15T08:30:00.000Z",
+      "link": "https://drive.google.com/file/d/1ABCDEF/view"
+    },
+    {
+      "id": 14,
+      "user_id": 21,
+      "name": "Báo cáo cảnh báo tháng",
+      "time": "2026-05-01T02:10:00.000Z",
+      "link": "https://storage.example.com/reports/report-14.pdf"
+    }
+  ]
+}
+```
+
+**Notes:**
+
+- Data source table: `report_history` with fields `id`, `user_id`, `name`, `time`, `link`
+- Records are sorted by newest first (`time DESC`, then `id DESC`)
 
 ---
 

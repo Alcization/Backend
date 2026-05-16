@@ -57,6 +57,20 @@ exports.getReportSchedules = asyncHandler(async (req, res) => {
     res.json(schedules);
 });
 
+// GET /users/me/report-history - Get report history of current user
+exports.getReportHistory = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const history = await userService.getReportHistory(userId, req.query);
+    res.json(history);
+});
+
+// POST /users/me/report-history - Create a report history record for current user
+exports.createReportHistory = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const created = await userService.createReportHistory(userId, req.body);
+    res.status(201).json(created);
+});
+
 // POST /users/me/report-schedules - Save a periodic report schedule
 exports.saveReportSchedule = asyncHandler(async (req, res) => {
     const userId = req.user.id;
