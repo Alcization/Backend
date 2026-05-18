@@ -17,7 +17,8 @@ const AdminArea = sequelize.define('AdminArea', {
     area_type: { type: DataTypes.STRING(50) }, // "Phường" or "Quận"
     address: { type: DataTypes.TEXT }, // Text address entered by user
     management_area: { type: DataTypes.JSON }, // Circle geometry: {center: {lat, lng}, radius_km},
-    hot_points: { type: DataTypes.INTEGER, defaultValue: 0 } // List of hot points within the area
+    temp_threshold: { type: DataTypes.INTEGER, allowNull: true }, // Temperature threshold in degrees
+    rain_threshold: { type: DataTypes.INTEGER, allowNull: true } // Rain threshold in mm
 }, { tableName: 'admin_area', timestamps: false });
 
 // Response Scenario - emergency response plans

@@ -2974,7 +2974,8 @@ Authorization: Bearer YOUR_ADMIN_TOKEN
       },
       "radius_km": 5.5
     },
-    "hot_points": 0,
+    "temp_threshold": 35,
+    "rain_threshold": 100,
     "AdministrativeOfficer": {
       "officer_id": 1,
       "user_id": 5,
@@ -3019,7 +3020,8 @@ Retrieve details of a specific admin area.
     },
     "radius_km": 5.5
   },
-  "hot_points": 0
+  "temp_threshold": 35,
+  "rain_threshold": 100
 }
 ```
 
@@ -3082,7 +3084,8 @@ Create a new admin area with full details.
     },
     "radius_km": 3.2
   },
-  "hot_points": 0
+  "temp_threshold": 35,
+  "rain_threshold": 100
 }
 ```
 
@@ -3148,7 +3151,8 @@ Update an existing admin area.
     },
     "radius_km": 3.5
   },
-  "hot_points": 0
+  "temp_threshold": 35,
+  "rain_threshold": 100
 }
 ```
 
@@ -3164,6 +3168,80 @@ curl -X PUT http://localhost:3000/api/admin/areas/5 \
       "center": {"lat": 10.7850, "lng": 106.7050},
       "radius_km": 3.5
     }
+  }'
+```
+
+---
+
+**Get Area Thresholds:**
+
+Retrieve the temperature and rain thresholds for a specific admin area.
+
+**Endpoint:** `GET /api/admin/areas/:id/thresholds`
+
+**Parameters:**
+
+- `id` (path): Area ID
+
+**Response:** `200 OK`
+
+```json
+{
+  "area_id": 1,
+  "name": "Quận 5",
+  "temp_threshold": 35,
+  "rain_threshold": 100
+}
+```
+
+**cURL Example:**
+
+```bash
+curl http://localhost:3000/api/admin/areas/1/thresholds \\
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+---
+
+**Update Area Thresholds:**
+
+Update the temperature and rain thresholds for a specific admin area.
+
+**Endpoint:** `PUT /api/admin/areas/:id/thresholds`
+
+**Parameters:**
+
+- `id` (path): Area ID
+
+**Request Body (both fields optional):**
+
+```json
+{
+  "temp_threshold": 38,
+  "rain_threshold": 120
+}
+```
+
+**Response:** `200 OK`
+
+```json
+{
+  "area_id": 1,
+  "name": "Quận 5",
+  "temp_threshold": 38,
+  "rain_threshold": 120
+}
+```
+
+**cURL Example:**
+
+```bash
+curl -X PUT http://localhost:3000/api/admin/areas/1/thresholds \\
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "temp_threshold": 38,
+    "rain_threshold": 120
   }'
 ```
 
@@ -3387,7 +3465,8 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 - `area_type` (STRING) - "Phường" or "Quận"
 - `address` (TEXT) - Text address entered by user
 - `management_area` (JSON) - Circle geometry: `{center: {lat, lng}, radius_km}`
-- `hot_points` (INTEGER) - Number of hot spots/incidents in the area (default: 0)
+- `temp_threshold` (INTEGER, nullable) - Temperature threshold in degrees
+- `rain_threshold` (INTEGER, nullable) - Rain threshold in millimeters
 - `boundary_polygon` (TEXT) - Legacy GeoJSON/Polygon field
 
 **response_scenario** - Emergency response plans

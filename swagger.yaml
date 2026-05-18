@@ -476,6 +476,46 @@ paths:
         '401':
           description: Unauthorized
 
+  /api/users/me/report-history:
+    get:
+      tags: [Users]
+      summary: Get report history
+      description: Retrieve report export/download history for the authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Report history returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportHistoryList'
+        '401':
+          description: Unauthorized
+    post:
+      tags: [Users]
+      summary: Create report history
+      description: Create a new report history record for the authenticated user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReportHistoryCreate'
+      responses:
+        '201':
+          description: Report history created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportHistory'
+        '400':
+          description: Validation error
+        '401':
+          description: Unauthorized
+
   # ======================== MAP ROUTES ========================
   /api/map/traffic:
     get:
@@ -670,6 +710,67 @@ paths:
       responses:
         '200':
           description: Area deleted successfully
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin role required
+        '404':
+          description: Area not found
+
+  /api/admin/areas/{id}/thresholds:
+    get:
+      tags: [Admin]
+      summary: Get area thresholds
+      description: Retrieve temperature and rain thresholds for an administrative area
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: Area thresholds returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AreaThresholds'
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden - admin role required
+        '404':
+          description: Area not found
+    put:
+      tags: [Admin]
+      summary: Update area thresholds
+      description: Update temperature and rain thresholds for an administrative area
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                temp_threshold:
+                  type: integer
+                  nullable: true
+                  description: Temperature threshold in degrees (Celsius)
+                rain_threshold:
+                  type: integer
+                  nullable: true
+                  description: Rain threshold in millimeters
+      responses:
+        '200':
+          description: Area thresholds updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AreaThresholds'
+        '400':
+          description: Invalid request
         '401':
           description: Unauthorized
         '403':
@@ -1777,17 +1878,68 @@ components:
     Area:
       type: object
       properties:
-        id:
+        area_id:
           type: integer
+          description: Unique area identifier
+        officer_id:
+          type: integer
+          nullable: true
+          description: ID of the administrative officer managing this area
         name:
           type: string
-        description:
+          description: Area name
+        area_type:
           type: string
-        coordinates:
+          description: Area type (Phường or Quận)
+        address:
+          type: string
+          description: Text address of the area
+        management_area:
           type: object
-        createdAt:
+          description: Circle geometry with center coordinates and radius
+          properties:
+            center:
+              type: object
+              properties:
+                lat:
+                  type: number
+                  description: Latitude
+                lng:
+                  type: number
+                  description: Longitude
+            radius_km:
+              type: number
+              description: Radius in kilometers
+        temp_threshold:
+          type: integer
+          nullable: true
+          description: Temperature threshold in degrees Celsius
+        rain_threshold:
+          type: integer
+          nullable: true
+          description: Rain threshold in millimeters
+        AdministrativeOfficer:
+          type: object
+          nullable: true
+          description: Associated administrative officer details
+
+    AreaThresholds:
+      type: object
+      properties:
+        area_id:
+          type: integer
+          description: Area identifier
+        name:
           type: string
-          format: date-time
+          description: Area name
+        temp_threshold:
+          type: integer
+          nullable: true
+          description: Temperature threshold in degrees Celsius
+        rain_threshold:
+          type: integer
+          nullable: true
+          description: Rain threshold in millimeters
 
     ResponseScenario:
       type: object
@@ -1853,3 +2005,41 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    ReportHistory:
+      type: object
+      properties:
+        id:
+          type: integer
+        user_id:
+          type: integer
+        name:
+          type: string
+          nullable: true
+        time:
+          type: string
+          format: date-time
+        link:
+          type: string
+
+    ReportHistoryCreate:
+      type: object
+      properties:
+        name:
+          type: string
+          nullable: true
+        time:
+          type: string
+          format: date-time
+          description: Datetime of report generation; if omitted, server will use current time
+        link:
+          type: string
+      required: [link]
+
+    ReportHistoryList:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ReportHistory'

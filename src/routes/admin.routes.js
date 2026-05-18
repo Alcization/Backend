@@ -14,6 +14,8 @@ router.get('/areas/:id', adminCtrl.getArea);
 router.post('/areas', adminCtrl.createArea);
 router.put('/areas/:id', adminCtrl.updateArea);
 router.delete('/areas/:id', adminCtrl.deleteArea);
+router.get('/areas/:id/thresholds', adminCtrl.getAreaThresholds);
+router.put('/areas/:id/thresholds', adminCtrl.updateAreaThresholds);
 
 // Response Scenarios
 router.get('/scenarios', adminCtrl.getScenarios);

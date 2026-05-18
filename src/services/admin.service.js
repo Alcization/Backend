@@ -81,7 +81,9 @@ class AdminService {
             area_type: data.area_type,
             address: data.address,
             management_area: data.management_area,
-            boundary_polygon: data.boundary_polygon || null
+            boundary_polygon: data.boundary_polygon || null,
+            temp_threshold: data.temp_threshold || null,
+            rain_threshold: data.rain_threshold || null
         });
 
         return area;
@@ -264,6 +266,8 @@ class AdminService {
         if (data.address !== undefined) area.address = data.address;
         if (data.boundary_polygon !== undefined) area.boundary_polygon = data.boundary_polygon;
         if (data.officer_id !== undefined) area.officer_id = data.officer_id;
+        if (data.temp_threshold !== undefined) area.temp_threshold = data.temp_threshold;
+        if (data.rain_threshold !== undefined) area.rain_threshold = data.rain_threshold;
         
         // Validate management_area if provided
         if (data.management_area !== undefined) {
@@ -296,6 +300,47 @@ class AdminService {
         
         await area.destroy();
         return { message: 'Area deleted successfully' };
+    }
+
+    /**
+     * Get area thresholds (temp_threshold, rain_threshold)
+     */
+    async getAreaThresholds(areaId) {
+        const area = await AdminArea.findByPk(areaId, {
+            attributes: ['area_id', 'name', 'temp_threshold', 'rain_threshold']
+        });
+
+        if (!area) throw new Error('Area not found');
+        return area;
+    }
+
+    /**
+     * Update area thresholds (temp_threshold, rain_threshold)
+     */
+    async updateAreaThresholds(areaId, data) {
+        if (!data || typeof data !== 'object') {
+            throw new Error('Invalid request: threshold data is required');
+        }
+
+        const area = await AdminArea.findByPk(areaId);
+        if (!area) throw new Error('Area not found');
+
+        // Update thresholds if provided
+        if (data.temp_threshold !== undefined) {
+            area.temp_threshold = data.temp_threshold;
+        }
+        if (data.rain_threshold !== undefined) {
+            area.rain_threshold = data.rain_threshold;
+        }
+
+        await area.save();
+        
+        return {
+            area_id: area.area_id,
+            name: area.name,
+            temp_threshold: area.temp_threshold,
+            rain_threshold: area.rain_threshold
+        };
     }
 
     /**

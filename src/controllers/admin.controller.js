@@ -36,6 +36,20 @@ exports.deleteArea = asyncHandler(async (req, res) => {
     res.json(result);
 });
 
+// GET /admin/areas/:id/thresholds - Get area thresholds (temp_threshold, rain_threshold)
+exports.getAreaThresholds = asyncHandler(async (req, res) => {
+    const areaId = parseInt(req.params.id);
+    const thresholds = await adminService.getAreaThresholds(areaId);
+    res.json(thresholds);
+});
+
+// PUT /admin/areas/:id/thresholds - Update area thresholds (temp_threshold, rain_threshold)
+exports.updateAreaThresholds = asyncHandler(async (req, res) => {
+    const areaId = parseInt(req.params.id);
+    const thresholds = await adminService.updateAreaThresholds(areaId, req.body);
+    res.json(thresholds);
+});
+
 // GET /admin/scenarios - Get all scenarios
 exports.getScenarios = asyncHandler(async (req, res) => {
     const areaId = req.query.area_id ? parseInt(req.query.area_id) : null;
