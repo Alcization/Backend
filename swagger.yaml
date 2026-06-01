@@ -260,6 +260,11 @@ paths:
       responses:
         '200':
           description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Public Content."
 
   /api/users/test/user:
     get:
@@ -271,6 +276,11 @@ paths:
       responses:
         '200':
           description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "User Content."
         '401':
           description: Unauthorized
 
@@ -284,6 +294,11 @@ paths:
       responses:
         '200':
           description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Moderator Content."
         '403':
           description: Forbidden - insufficient permissions
 
@@ -297,6 +312,11 @@ paths:
       responses:
         '200':
           description: Success
+          content:
+            text/plain:
+              schema:
+                type: string
+                example: "Admin Content."
         '403':
           description: Forbidden - insufficient permissions
 
@@ -446,7 +466,7 @@ paths:
               schema:
                 type: array
                 items:
-                  type: object
+                  $ref: '#/components/schemas/ReportSchedule'
         '401':
           description: Unauthorized
     post:
@@ -460,19 +480,22 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                frequency:
-                  type: string
-                  enum: [daily, weekly, monthly]
-                email:
-                  type: string
-                  format: email
+              $ref: '#/components/schemas/ReportScheduleRequest'
       responses:
         '201':
           description: Report schedule created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportSchedule'
         '200':
           description: Report schedule updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportSchedule'
+        '400':
+          description: Validation error (invalid type, day, or email)
         '401':
           description: Unauthorized
 
@@ -1037,9 +1060,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Location'
+                $ref: '#/components/schemas/SuccessArrayResponse'
         '401':
           description: Unauthorized
     post:
@@ -1067,6 +1088,10 @@ paths:
       responses:
         '201':
           description: Location created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
         '401':
           description: Unauthorized
 
@@ -1097,6 +1122,10 @@ paths:
       responses:
         '200':
           description: Location updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
         '401':
           description: Unauthorized
         '404':
@@ -1112,6 +1141,10 @@ paths:
       responses:
         '200':
           description: Location deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessageResponse'
         '401':
           description: Unauthorized
         '404':
@@ -1130,9 +1163,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Route'
+                $ref: '#/components/schemas/SuccessArrayResponse'
         '401':
           description: Unauthorized
     post:
@@ -1161,6 +1192,10 @@ paths:
       responses:
         '201':
           description: Route created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
         '401':
           description: Unauthorized
 
@@ -1177,9 +1212,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Route'
+                $ref: '#/components/schemas/SuccessArrayResponse'
         '401':
           description: Unauthorized
     post:
@@ -1202,6 +1235,10 @@ paths:
       responses:
         '201':
           description: Favorite route created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
         '401':
           description: Unauthorized
 
@@ -1220,7 +1257,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Route'
+                $ref: '#/components/schemas/SuccessResponse'
         '401':
           description: Unauthorized
         '404':
@@ -1242,6 +1279,10 @@ paths:
       responses:
         '200':
           description: Favorite route updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
         '401':
           description: Unauthorized
         '404':
@@ -1257,6 +1298,10 @@ paths:
       responses:
         '200':
           description: Favorite route deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessageResponse'
         '401':
           description: Unauthorized
         '404':
@@ -1275,9 +1320,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
+                $ref: '#/components/schemas/SuccessArrayResponse'
         '401':
           description: Unauthorized
     post:
@@ -1301,6 +1344,10 @@ paths:
       responses:
         '201':
           description: Search history entry created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
         '401':
           description: Unauthorized
 
@@ -1317,9 +1364,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  type: object
+                $ref: '#/components/schemas/SuccessArrayResponse'
         '401':
           description: Unauthorized
     post:
@@ -1345,6 +1390,10 @@ paths:
       responses:
         '201':
           description: Weather history entry created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
         '401':
           description: Unauthorized
 
@@ -1363,7 +1412,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Route'
+                $ref: '#/components/schemas/SuccessResponse'
         '401':
           description: Unauthorized
         '404':
@@ -1385,6 +1434,10 @@ paths:
       responses:
         '200':
           description: Route updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
         '401':
           description: Unauthorized
         '404':
@@ -1400,6 +1453,10 @@ paths:
       responses:
         '200':
           description: Route deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessageResponse'
         '401':
           description: Unauthorized
         '404':
@@ -1419,9 +1476,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ResponseScenario'
+                $ref: '#/components/schemas/SuccessArrayResponse'
         '401':
           description: Unauthorized
     post:
@@ -1448,6 +1503,10 @@ paths:
       responses:
         '201':
           description: Scenario created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
         '401':
           description: Unauthorized
 
@@ -1466,7 +1525,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ResponseScenario'
+                $ref: '#/components/schemas/SuccessResponse'
         '401':
           description: Unauthorized
         '404':
@@ -1497,6 +1556,10 @@ paths:
       responses:
         '200':
           description: Scenario updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
         '401':
           description: Unauthorized
         '404':
@@ -1512,6 +1575,10 @@ paths:
       responses:
         '200':
           description: Scenario deleted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessMessageResponse'
         '401':
           description: Unauthorized
         '404':
@@ -2006,6 +2073,61 @@ components:
           type: string
           format: date-time
 
+    ReportSchedule:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: Unique schedule identifier
+        user_id:
+          type: integer
+          description: User ID
+        type:
+          type: string
+          enum: [weekly, monthly]
+          description: Schedule frequency (weekly or monthly)
+        day:
+          type: integer
+          description: |
+            Day of week (for weekly: 2-8 where 2=Monday, 8=Sunday) or
+            day of month (for monthly: 1-31)
+        name:
+          type: string
+          nullable: true
+          description: |
+            Comma-separated list of report types to include.
+            Supported types: weather, alerts, incidents
+        email:
+          type: string
+          format: email
+          description: Email address to send reports to
+      required: [id, user_id, type, day, email]
+
+    ReportScheduleRequest:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [weekly, monthly]
+          description: Schedule frequency (weekly or monthly)
+        day:
+          type: integer
+          description: |
+            Day of week (for weekly: 2-8 where 2=Monday, 8=Sunday) or
+            day of month (for monthly: 1-31)
+        name:
+          type: string
+          nullable: true
+          description: |
+            Comma-separated list of report types to include.
+            Supported types: weather, alerts, incidents
+            Example: "weather,alerts" or "weather, alerts, incidents"
+        email:
+          type: string
+          format: email
+          description: Email address to send reports to
+      required: [type, day, email]
+
     ReportHistory:
       type: object
       properties:
@@ -2043,3 +2165,38 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ReportHistory'
+
+    # ======================== RESPONSE WRAPPER SCHEMAS ========================
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          description: Response data (structure depends on endpoint)
+      required: [success, data]
+
+    SuccessArrayResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items: {}
+          description: Array of response items (structure depends on endpoint)
+      required: [success, data]
+
+    SuccessMessageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          description: Success message
+      required: [success, message]
