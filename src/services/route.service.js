@@ -31,8 +31,8 @@ class RouteService {
             address: data.address,
             latitude: data.latitude,
             longitude: data.longitude,
-            coordinate: data.longitude && data.latitude ? 
-                sequelize.literal(`point(${data.longitude}, ${data.latitude})`) : null
+            coordinate: data.longitude && data.latitude ?
+                sequelize.literal(`ST_SetSRID(ST_MakePoint(${Number(data.longitude)}, ${Number(data.latitude)}), 4326)`) : null
         });
         return location;
     }
@@ -74,7 +74,7 @@ class RouteService {
         const nextLongitude = updateData.longitude !== undefined ? updateData.longitude : location.longitude;
 
         updateData.coordinate = (nextLatitude !== null && nextLongitude !== null && nextLatitude !== undefined && nextLongitude !== undefined)
-            ? sequelize.literal(`point(${nextLongitude}, ${nextLatitude})`)
+            ? sequelize.literal(`ST_SetSRID(ST_MakePoint(${Number(nextLongitude)}, ${Number(nextLatitude)}), 4326)`)
             : null;
 
         await SavedLocation.update(updateData, {
