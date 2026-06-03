@@ -179,8 +179,8 @@ class AnalysisService {
             destination: `${destination.lat}, ${destination.lng}`,
             segments: [
                 {
-                    start_point: { type: 'Point', coordinates: [Number(origin.lng), Number(origin.lat)] },
-                    end_point: { type: 'Point', coordinates: [Number(destination.lng), Number(destination.lat)] }
+                    start_point: { x: Number(origin.lng), y: Number(origin.lat) },
+                    end_point: { x: Number(destination.lng), y: Number(destination.lat) }
                 }
             ]
         };

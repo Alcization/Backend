@@ -32,7 +32,7 @@ class RouteService {
 			latitude: data.latitude,
 			longitude: data.longitude,
 			coordinate: data.longitude && data.latitude ?
-				{ type: 'Point', coordinates: [Number(data.longitude), Number(data.latitude)] } : null
+				sequelize.literal(`point(${Number(data.longitude)}, ${Number(data.latitude)})`) : null
 		});
 		return location;
 	}
@@ -74,7 +74,7 @@ class RouteService {
 		const nextLongitude = updateData.longitude !== undefined ? updateData.longitude : location.longitude;
 
 		updateData.coordinate = (nextLatitude !== null && nextLongitude !== null && nextLatitude !== undefined && nextLongitude !== undefined)
-			? { type: 'Point', coordinates: [Number(nextLongitude), Number(nextLatitude)] }
+			? sequelize.literal(`point(${Number(nextLongitude)}, ${Number(nextLatitude)})`)
 			: null;
 
 		await SavedLocation.update(updateData, {
@@ -166,8 +166,8 @@ class RouteService {
 			const route = await SavedRoute.create({
 				user_id: userId,
 				name,
-				start_point: { type: 'Point', coordinates: [Number(start.lng), Number(start.lat)] },
-				end_point: { type: 'Point', coordinates: [Number(end.lng), Number(end.lat)] },
+				start_point: sequelize.literal(`point(${Number(start.lng)}, ${Number(start.lat)})`),
+				end_point: sequelize.literal(`point(${Number(end.lng)}, ${Number(end.lat)})`),
 				waypoints: waypoints.length ? JSON.stringify(waypoints) : null,
 				distance: distance,
 				start_address: data.start_address || data.startAddress || null,
@@ -253,7 +253,7 @@ class RouteService {
 				error.status = 400;
 				throw error;
 			}
-			updateData.start_point = { type: 'Point', coordinates: [Number(nextStart.lng), Number(nextStart.lat)] };
+			updateData.start_point = sequelize.literal(`point(${Number(nextStart.lng)}, ${Number(nextStart.lat)})`);
 		}
 
 		if (hasEndInput) {
@@ -263,7 +263,7 @@ class RouteService {
 				error.status = 400;
 				throw error;
 			}
-			updateData.end_point = { type: 'Point', coordinates: [Number(nextEnd.lng), Number(nextEnd.lat)] };
+			updateData.end_point = sequelize.literal(`point(${Number(nextEnd.lng)}, ${Number(nextEnd.lat)})`);
 		}
 
 		if (hasWaypointsInput) {
@@ -750,9 +750,9 @@ class RouteService {
 
 			await RouteSegment.create({
 				saved_route_id: routeId,
-				start_point: { type: 'Point', coordinates: [Number(from.lng), Number(from.lat)] },
-				end_point: { type: 'Point', coordinates: [Number(to.lng), Number(to.lat)] },
-				coordinate: { type: 'LineString', coordinates: [[Number(from.lng), Number(from.lat)], [Number(to.lng), Number(to.lat)]] },
+				start_point: sequelize.literal(`point(${Number(from.lng)}, ${Number(from.lat)})`),
+				end_point: sequelize.literal(`point(${Number(to.lng)}, ${Number(to.lat)})`),
+				coordinate: sequelize.literal(`path '[(${Number(from.lng)},${Number(from.lat)}),(${Number(to.lng)},${Number(to.lat)})]'`),
 				order_in_route: i + 1
 			}, { transaction });
 		}
