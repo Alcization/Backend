@@ -5,9 +5,9 @@ const sequelize = require('../config/database');
 const RouteSegment = sequelize.define('RouteSegment', {
     segment_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     saved_route_id: { type: DataTypes.INTEGER, allowNull: true },
-    start_point: { type: DataTypes.GEOMETRY('POINT') },
-    end_point: { type: DataTypes.GEOMETRY('POINT') },
-    coordinate: { type: DataTypes.GEOMETRY('LINESTRING') }, // Path of the segment
+    start_point: { type: DataTypes.JSONB },
+    end_point: { type: DataTypes.JSONB },
+    coordinate: { type: DataTypes.JSONB }, // Path of the segment
     order_in_route: { type: DataTypes.INTEGER }
 }, { tableName: 'route_segment', timestamps: false });
 
@@ -23,7 +23,7 @@ const TrafficReading = sequelize.define('TrafficReading', {
 // Weather Area - geographical weather zones
 const WeatherArea = sequelize.define('WeatherArea', {
     area_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    center_point: { type: DataTypes.GEOMETRY('POINT') },
+    center_point: { type: DataTypes.JSONB },
     name: { type: DataTypes.STRING(255) }
 }, { tableName: 'weather_area', timestamps: false });
 
@@ -78,7 +78,7 @@ const AlertEvent = sequelize.define('AlertEvent', {
     name: { type: DataTypes.STRING(255) },
     type: { type: DataTypes.STRING(50) }, // 'Flood', 'Accident', 'Traffic Jam'
     description: { type: DataTypes.TEXT },
-    location: { type: DataTypes.GEOMETRY('POINT') }, // Added for incident location
+    location: { type: DataTypes.JSONB }, // Added for incident location
     severity: { type: DataTypes.STRING(50) }, // 'Low', 'Medium', 'High', 'Critical'
     issue_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
     resolved_at: { type: DataTypes.DATE }

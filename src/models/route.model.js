@@ -8,7 +8,7 @@ const SavedLocation = sequelize.define('SavedLocation', {
     user_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'user_account', key: 'user_id' } },
     custom_name: { type: DataTypes.STRING(255) },
     address: { type: DataTypes.TEXT },
-    coordinate: { type: DataTypes.GEOMETRY('POINT') },
+    coordinate: { type: DataTypes.JSONB },
     latitude: { type: DataTypes.DECIMAL(10, 6) },
     longitude: { type: DataTypes.DECIMAL(10, 6) }
 }, { tableName: 'saved_location', timestamps: false });
@@ -18,8 +18,8 @@ const SavedRoute = sequelize.define('SavedRoute', {
     route_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     user_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'user_account', key: 'user_id' } },
     name: { type: DataTypes.STRING(255) },
-    start_point: { type: DataTypes.GEOMETRY('POINT') },
-    end_point: { type: DataTypes.GEOMETRY('POINT') },
+    start_point: { type: DataTypes.JSONB },
+    end_point: { type: DataTypes.JSONB },
     waypoints: { type: DataTypes.TEXT }, // JSON string of waypoints
     distance: { type: DataTypes.DOUBLE },
     start_address: { type: DataTypes.TEXT },
@@ -50,8 +50,8 @@ const HistoryWeather = sequelize.define('HistoryWeather', {
 const Trip = sequelize.define('Trip', {
     trip_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     user_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'user_account', key: 'user_id' } },
-    origin: { type: DataTypes.GEOMETRY('POINT') },
-    destination: { type: DataTypes.GEOMETRY('POINT') },
+    origin: { type: DataTypes.JSONB },
+    destination: { type: DataTypes.JSONB },
     time_departure: { type: DataTypes.DATE },
     status: { type: DataTypes.STRING(50) } // 'Scheduled', 'Ongoing', 'Completed'
 }, { tableName: 'trip', timestamps: false });
