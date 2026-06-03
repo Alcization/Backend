@@ -179,8 +179,8 @@ class AnalysisService {
             destination: `${destination.lat}, ${destination.lng}`,
             segments: [
                 {
-                    start_point: JSON.stringify({ type: 'Point', coordinates: [origin.lng, origin.lat] }),
-                    end_point: JSON.stringify({ type: 'Point', coordinates: [destination.lng, destination.lat] })
+                    start_point: { type: 'Point', coordinates: [Number(origin.lng), Number(origin.lat)] },
+                    end_point: { type: 'Point', coordinates: [Number(destination.lng), Number(destination.lat)] }
                 }
             ]
         };
