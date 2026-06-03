@@ -7,8 +7,8 @@ const SavedRoute = sequelize.define('SavedRoute', {
     route_id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     user_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'user_account', key: 'user_id' } },
     name: { type: DataTypes.STRING },
-    start_point: { type: DataTypes.JSONB }, // Yêu cầu PostGIS hoặc xử lý dạng String
-    end_point: { type: DataTypes.JSONB },
+    start_point: { type: 'POINT' }, // Yêu cầu PostGIS hoặc xử lý dạng String
+    end_point: { type: 'POINT' },
     waypoints: { type: DataTypes.TEXT }, // Lưu JSON string tọa độ
     distance: { type: DataTypes.DOUBLE },
     start_address: { type: DataTypes.TEXT },
