@@ -159,6 +159,7 @@ class AuthService {
             id: user.user_id,
             username: user.username,
             email: user.email,
+            account_type: user.account_type,
             roles: roles,
             accessToken: token,
             refreshToken: refreshToken
@@ -252,6 +253,7 @@ class AuthService {
                 id: user.user_id,
                 username: user.username,
                 email: user.email,
+                account_type: user.account_type,
                 roles: roles,
                 isNewUser,
                 accessToken: token,
