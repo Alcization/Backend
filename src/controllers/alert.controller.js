@@ -46,10 +46,14 @@ class AlertController {
     }
 
     async getVapidPublicKey(req, res) {
-        res.json({
-            success: true,
-            data: { publicKey: process.env.VAPID_PUBLIC_KEY || null }
-        });
+        const publicKey = process.env.VAPID_PUBLIC_KEY;
+        if (!publicKey) {
+            return res.status(503).json({
+                success: false,
+                message: 'Web Push is not configured on the server (VAPID_PUBLIC_KEY missing).'
+            });
+        }
+        res.json({ success: true, data: { publicKey } });
     }
 
     async listEvents(req, res) {
