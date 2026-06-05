@@ -1,6 +1,9 @@
+const http = require('http');
 const app = require('./app');
 const sequelize = require('./config/database');
 const initializeRoles = require('./config/initial-roles');
+const notificationSocket = require('./sockets/notification.socket');
+const alertWorker = require('./jobs/alert.worker');
 
 const PORT = process.env.PORT || 3000;
 const ALLOW_START_WITHOUT_DB = process.env.ALLOW_START_WITHOUT_DB === 'true';
@@ -26,13 +29,26 @@ const getDatabaseTarget = () => {
 };
 
 const startHttpServer = () => {
-	app.listen(PORT, () => {
+	const httpServer = http.createServer(app);
+
+	try {
+		notificationSocket.attach(httpServer);
+		console.log('✓ Notification WebSocket attached at /ws/notifications');
+	} catch (err) {
+		console.warn('⚠ Could not attach notification WebSocket:', err.message);
+	}
+
+	httpServer.listen(PORT, () => {
 		console.log(`✓ Server running on port ${PORT}`);
 		console.log(`✓ Environment: ${process.env.NODE_ENV || 'development'}`);
 		if (ALLOW_START_WITHOUT_DB) {
 			console.log('✓ ALLOW_START_WITHOUT_DB is enabled. Service can run in degraded mode when DB is unavailable.');
 		}
 	});
+
+	if (app.locals.dbReady && process.env.ALERT_WORKER_ENABLED !== 'false') {
+		alertWorker.start();
+	}
 };
 
 /**
