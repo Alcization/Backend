@@ -52,16 +52,17 @@ const aggregateForecastMetric = (metric, hourly, operator) => {
 };
 
 const buildAlertPayload = (rule, location, value) => {
-    const placeName = location.custom_name || location.address || `Location #${location.location_id}`;
+    const placeName = location.custom_name || location.address || `Địa điểm #${location.location_id}`;
     const metricLabel = {
-        temp: 'Temperature',
-        feelslike: 'Feels like',
-        precip: 'Rainfall',
-        precipprob: 'Rain probability'
+        temp: 'Nhiệt độ',
+        feelslike: 'Nhiệt độ cảm nhận',
+        precip: 'Lượng mưa',
+        precipprob: 'Xác suất mưa'
     }[rule.metric] || rule.metric;
     const unit = rule.unit || '';
-    const title = `${metricLabel} alert: ${placeName}`;
-    const body = `${metricLabel} is ${value?.toFixed?.(1) ?? value}${unit} (${rule.operator} ${rule.threshold}${unit}).`;
+    const formattedValue = value?.toFixed?.(1) ?? value;
+    const title = `Cảnh báo ${metricLabel.toLowerCase()}: ${placeName}`;
+    const body = `${metricLabel} hiện ${formattedValue}${unit} (vượt ngưỡng ${rule.operator} ${rule.threshold}${unit}).`;
     return {
         title,
         body,
